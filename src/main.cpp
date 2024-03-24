@@ -1,53 +1,95 @@
 #include <Arduino.h>
-#include "configuration.h"
-#include "driver/mpu/mpu6050.h"
-#include "service/ota/ota.h"
-#include "tracker/Tracker.h"
+#include <Esp.h>
 
-#define WIRE_SPEED      400000
-#define SERIAL_SPEED    500000
+#include "common/dkvr_core.h"
 
-#ifdef DKVR_OVERRIDE_INT_PIN
-#define INTERRUPT_PIN   DKVR_OVERRIDE_INT_PIN
-#else
-#define INTERRUPT_PIN   14
-#endif
+#include "common/adc_interface.h"
+#include "common/gpio_interface.h"
+#include "common/i2c_interface.h"
+#include "common/udp_interface.h"
+#include "common/wifi_interface.h"
 
-DKVR::Core::Tracker tracker;
-bool error = false;
-volatile bool interrupted = false;
+#include "tracker/tracker_main.h"
+#include "tracker/tracker_status.h"
 
-void IRAM_ATTR onInterrupt()
+#define SERIAL_SPEED        115200
+
+static void init_framework();
+
+void IRAM_ATTR interrupt_callback()
 {
-    interrupted = true;
+    gpio_interrupt = 1;
 }
 
 void setup()
 {
-    Wire.begin();
-    Wire.setClock(WIRE_SPEED);
-#ifdef DKVR_ENABLE_DEBUG
+#ifdef DKVR_DEBUG_ENABLE
     Serial.begin(SERIAL_SPEED);
 #endif
+    pinMode(DKVR_HARDWARE_LED_GPIO_NUM, OUTPUT);
 
-    if ((error = tracker.Initialize()))
+    init_framework();
+    init_tracker();
+
+    if (get_tracker_init_result() == DKVR_OK)
     {
-        PRINTLN("IMU error occured but just gonna do the work.");
+        attachInterrupt(digitalPinToInterrupt(DKVR_HARDWARE_INT_GPIO_NUM), interrupt_callback, RISING);
     }
     else
     {
-        attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), onInterrupt, RISING);
+        PRINTLN("Tracker init failed. It will not work properly.");
     }
 }
 
 void loop()
 {
-    tracker.Update();
-
-    if (interrupted)
-    {
-        interrupted = false;
-        tracker.OnInterrupt();
-    }
+    update_tracker();
 }
 
+static void init_framework()
+{
+    dkvr_err_t result;
+    int failed = 0;
+
+    result = dkvr_adc_init();
+    if (result != DKVR_OK)
+    {
+        PRINTLN("ADC init failed : 0x", (result));
+        failed = 1;
+    }
+
+    result = dkvr_gpio_init();
+    if (result != DKVR_OK)
+    {
+        PRINTLN("GPIO init failed : 0x", (result));
+        failed = 1;
+    }
+
+    result = dkvr_i2c_init();
+    if (result != DKVR_OK)
+    {
+        PRINTLN("I2C init failed : 0x", (result));
+        failed = 1;
+    }
+
+    result = dkvr_wifi_init();
+    if (result != DKVR_OK)
+    {
+        PRINTLN("WiFi init failed : 0x", (result));
+        failed = 1;
+    }
+
+    result = dkvr_udp_init();
+    if (result != DKVR_OK)
+    {
+        PRINTLN("UDP init failed : 0x", (result));
+        failed = 1;
+    }
+
+    if (failed)
+    {
+        PRINTLN("Framework init failed. Aborting program...");
+        delay(5000);
+        ESP.reset();
+    }
+}
