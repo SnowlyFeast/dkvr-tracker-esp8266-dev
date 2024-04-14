@@ -190,8 +190,8 @@ uint8_t mpu6050_configure(mpu6050_handle_t* hptr, mpu6050_conf_t* cptr)
     // calculate smplrt_div
     if (cptr->smplrt)
     {
-        uint8_t fs = cptr->dlpf ? 1000 : 8000;
-        cptr->smplrt_div = (fs / cptr->smplrt) - 1;
+        uint16_t fs = cptr->dlpf ? 1000 : 8000;
+        cptr->smplrt_div = (uint8_t)((fs / cptr->smplrt) - 1);
     }
 
     MPU6050_UPDATE_CONFIG(hptr, cptr, clksel,       MPU6050_REG_PWR_MGMT_1);

@@ -32,8 +32,9 @@ dkvr_err_t init_configured_hmc5883l()
 
     hmc5883l_set_ma(&conf, HMC5883L_MA_4);
     hmc5883l_set_do(&conf, HMC5883L_DO_75HZ);
-    hmc5883l_set_do(&conf, HMC5883L_MS_NORMAL);
+    hmc5883l_set_ms(&conf, HMC5883L_MS_NORMAL);
     hmc5883l_set_gn(&conf, HMC5883L_GN_230);
+    hmc5883l_set_hs(&conf, HMC5883L_HS_ENABLE);
     hmc5883l_set_md(&conf, HMC5883L_MD_CONTINUOUS);
 
     if (hmc5883l_configure(hptr, conf))
@@ -50,7 +51,6 @@ dkvr_err_t read_mag_configured_hmc5883l(vector3_t *mag_out, const uint64_t *from
     hmc5883l_result_t result;
     if (from == NULL)
         result = hmc5883l_read_mag(&hmc5883l_configured_handle, &mag);
-
     else
         result = hmc5883l_read_mag_from(&hmc5883l_configured_handle, &mag, *from);
     

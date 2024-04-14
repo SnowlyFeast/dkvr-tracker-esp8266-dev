@@ -119,6 +119,15 @@ uint8_t hmc5883l_configure(hmc5883l_handle_t *hptr, const hmc5883l_conf_t new_co
     return 0;
 }
 
+uint8_t hmc5883l_take_single_measure(hmc5883l_handle_t *hptr)
+{
+    uint8_t mode = (hptr->conf.mode & HMC5883L_MODE_UNSET_MASK_MD) | HMC5883L_MD_SINGLE;
+    hmc5883l_write(hptr, HMC5883L_REG_MODE, 1, &mode);
+    ASSERT_RESULT(hptr);
+
+    return 0;
+}
+
 uint8_t hmc5883l_read_mag(hmc5883l_handle_t *hptr, hmc5883l_vec3s_t *out)
 {
     uint8_t buffer[8];

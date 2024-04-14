@@ -63,7 +63,7 @@ typedef enum hmc5883l_gn_e
  : (x) == HMC5883L_GN_330   ? 3.030f    \
                             : 4.348f)
 
-// high speed i2c (3400kHz)
+// high speed i2c (400kHz)
 typedef enum hmc5883l_hs_e
 {
     HMC5883L_HS_ENABLE      = 0x80,
@@ -75,7 +75,7 @@ typedef enum hmc5883l_md_e
 {
     HMC5883L_MD_CONTINUOUS  = 0x00,
     HMC5883L_MD_SINGLE      = 0x01,
-    HMC5883L_MD_IDLE        = 0x10
+    HMC5883L_MD_IDLE        = 0x02
 } hmc5883l_md_t;
 
 typedef struct hmc5883l_conf_s
@@ -113,6 +113,7 @@ typedef struct hmc5883l_handle_s
     uint8_t i2c_result;
 } __attribute__((aligned(4))) hmc5883l_handle_t;
 
+// FIXME: Change those FUCKING retarded function names
 // set number of samples averaged
 void hmc5883l_set_ma(hmc5883l_conf_t* cptr, hmc5883l_ma_t ma);  
 // set data output rate
@@ -132,6 +133,7 @@ void hmc5883l_attach_delay(hmc5883l_handle_t* hptr, hmc5883l_delay_callback call
 hmc5883l_result_t hmc5883l_assert_handle(hmc5883l_handle_t* hptr);
 
 uint8_t hmc5883l_configure(hmc5883l_handle_t* hptr, const hmc5883l_conf_t new_conf);
+uint8_t hmc5883l_take_single_measure(hmc5883l_handle_t* hptr);
 
 uint8_t hmc5883l_read_mag(hmc5883l_handle_t* hptr, hmc5883l_vec3s_t* out);
 uint8_t hmc5883l_read_mag_from(hmc5883l_handle_t* hptr, hmc5883l_vec3s_t* out, uint64_t from);
