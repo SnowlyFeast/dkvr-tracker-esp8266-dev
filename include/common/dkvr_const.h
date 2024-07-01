@@ -42,7 +42,8 @@ typedef uint8_t dkvr_err_t;
 #define DKVR_HARDWARE_LED_GPIO_NUM  2
 #define DKVR_HARDWARE_INT_GPIO_NUM  14
 
-#define DKVR_IMU_SAMPLING_RATE      100
+#define DKVR_IMU_SAMPLING_RATE      100                             // Hz
+#define DKVR_IMU_SAMPLING_PERIOD    (1.0f / DKVR_IMU_SAMPLING_RATE) // s
 
 
 
@@ -78,11 +79,13 @@ typedef uint8_t dkvr_err_t;
 #define DKVR_OPCODE_CALIBRATION_GR  0x24
 #define DKVR_OPCODE_CALIBRATION_AC  0x25
 #define DKVR_OPCODE_CALIBRATION_MG  0x26
+#define DKVR_OPCODE_MAG_REF_RECALC  0x27
 
 // data transfer
 #define DKVR_OPCODE_STATUS          0x31
 #define DKVR_OPCODE_IMU_RAW         0x32
 #define DKVR_OPCODE_IMU_QUAT        0x33
+#define DKVR_OPCODE_STATISTIC       0x34
 
 
 /* --------------------------------- battery -------------------------------- */

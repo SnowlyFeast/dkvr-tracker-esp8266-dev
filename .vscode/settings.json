@@ -56,6 +56,14 @@
         "cmath": "c",
         "adc_interface.h": "c",
         "math.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "buffer": "c",
+        "socket": "c",
+        "utility": "c",
+        "assert.h": "c",
+        "matrix.h": "c",
+        "ratio": "cpp",
+        "pgmspace.h": "c",
+        "ets_sys.h": "c"
     }
 }

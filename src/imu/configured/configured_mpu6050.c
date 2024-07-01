@@ -42,7 +42,7 @@ dkvr_err_t init_configured_mpu6050(int a0)
     mpu6050_set_clksel(&conf, MPU6050_CLK_GYRO_Z_BIT);
     mpu6050_set_sampling_rate(&conf, DKVR_IMU_SAMPLING_RATE);
     mpu6050_set_dlpf(&conf, MPU6050_DLPF_42_HZ_BIT);
-    mpu6050_set_gyro_fsr(&conf, MPU6050_GYRO_FSR_2000_BIT);
+    mpu6050_set_gyro_fsr(&conf, MPU6050_GYRO_FSR_1000_BIT);
     mpu6050_set_accel_fsr(&conf, MPU6050_ACCEL_FSR_2_BIT);
     mpu6050_set_fifo_en(&conf, fifo_en);
     mpu6050_set_int_conf(&conf, int_conf);

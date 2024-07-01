@@ -60,8 +60,12 @@ void turn_on_led()
 {
     if (current_led_on)
         return;
-
+#ifdef DKVR_HARDWARE_LED_CATHODE_TO_GND
     dkvr_gpio_write(DKVR_HARDWARE_LED_GPIO_NUM, DKVR_HIGH);
+#else
+    // internal LED's anode is connected to 3.3V and cathode is connected to GPIO
+    dkvr_gpio_write(DKVR_HARDWARE_LED_GPIO_NUM, DKVR_LOW);
+#endif
     current_led_on = 1;
 }
 
@@ -70,7 +74,12 @@ void turn_off_led()
     if (!current_led_on)
         return;
 
+#ifdef DKVR_HARDWARE_LED_CATHODE_TO_GND
     dkvr_gpio_write(DKVR_HARDWARE_LED_GPIO_NUM, DKVR_LOW);
+#else
+    // internal LED's anode is connected to 3.3V and cathode is connected to GPIO
+    dkvr_gpio_write(DKVR_HARDWARE_LED_GPIO_NUM, DKVR_HIGH);
+#endif
     current_led_on = 0;
 }
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <assert.h>
 #include <math.h>
 #include <stdint.h>
 
@@ -15,7 +14,7 @@ typedef struct vector3_s
 
 typedef struct quaternion_s
 {
-    float x, y, z, w;
+    float w, x, y, z;
 } quaternion_t;
 
 typedef union byte_pack_u

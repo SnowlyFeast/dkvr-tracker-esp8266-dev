@@ -3,9 +3,9 @@
 /* -------------------------------------------------------------------------- */
 /*                            Network Configuration                           */
 /* -------------------------------------------------------------------------- */
-#define DKVR_WIFI_SSID      "Bidulgi"
-#define DKVR_WIFI_PASSWORD  "999999999"
-#define DKVR_HOST_IP        IPV4(192, 168, 0, 8)
+#define DKVR_WIFI_SSID      "DK-GRAM 2919"
+#define DKVR_WIFI_PASSWORD  "88q7?C43"
+#define DKVR_HOST_IP        IPV4(192, 168, 137, 1)
 #define DKVR_HOST_PORT      8899
 
 #define DKVR_CLIENT_NAME    "Test Model"
@@ -39,6 +39,7 @@
 /* -------------------------------------------------------------------------- */
 /*                        Pin Connection Configuration                        */
 /* -------------------------------------------------------------------------- */
+// #define DKVR_HARDWARE_LED_CATHODE_TO_GND
 // #define DKVR_HARDWARE_OVERRIDE_LED_GPIO     2
 // #define DKVR_HARDWARE_OVERRIDE_INT_GPIO     14
 
@@ -46,10 +47,10 @@
 /* -------------------------------------------------------------------------- */
 /*                                DEBUG OPTIONS                               */
 /* -------------------------------------------------------------------------- */
-#define DKVR_DEBUG_ENABLE
+#define DKVR_STATISTIC_ENABLE
 
+#define DKVR_DEBUG_ENABLE
 // #define DKVR_DEBUG_I2C
-#define DKVR_DEBUG_IMU
-#define DKVR_DEBUG_NET_SEND
-#define DKVR_DEBUG_NET_RECV
-#define DKVR_DEBUG_DIGEST_ANALYSIS
+// #define DKVR_DEBUG_IMU
+// #define DKVR_DEBUG_NET_SEND
+// #define DKVR_DEBUG_NET_RECV

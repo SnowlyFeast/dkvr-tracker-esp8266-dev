@@ -31,7 +31,11 @@ dkvr_err_t init_configured_qmc5883l()
     memset(&conf, 0, sizeof(conf));
 
     qmc5883l_set_mode(&conf, QMC5883L_MODE_CONTINUOUS);
+#if (DKVR_IMU_SAMPLING_RATE > 50)
     qmc5883l_set_odr(&conf, QMC5883L_ODR_100HZ);
+#else
+    qmc5883l_set_odr(&conf, QMC5883L_ODR_50HZ);
+#endif
     qmc5883l_set_rng(&conf, QMC5883L_RNG_8G);
     qmc5883l_set_osr(&conf, QMC5883L_OSR_256);
     qmc5883l_set_int_en(&conf, QMC5883L_INT_ENABLE);

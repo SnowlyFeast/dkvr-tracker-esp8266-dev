@@ -21,3 +21,9 @@ void dkvr_serial_print(const char* msg)
 {
     Serial.print(msg);
 }
+
+void dkvr_serial_print_float(float f)
+{
+    Serial.print(f);
+    Serial.print(" ");
+}

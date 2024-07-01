@@ -52,16 +52,16 @@ typedef enum hmc5883l_gn_e
     HMC5883L_GN_230         = 0xE0  // FSR: ± 8.9 G, Recommend <  8.1 G
 } hmc5883l_gn_t;
 
-// LSB resolution (mG/LSB)
+// LSB resolution (G/LSB)
 #define HMC5883L_LSB_RESOLUTION(x)      \
-(  (x) == HMC5883L_GN_1370  ? 7.299e-1f \
- : (x) == HMC5883L_GN_1090  ? 9.174e-1f \
- : (x) == HMC5883L_GN_820   ? 1.220f    \
- : (x) == HMC5883L_GN_660   ? 1.515f    \
- : (x) == HMC5883L_GN_440   ? 2.273f    \
- : (x) == HMC5883L_GN_390   ? 2.564f    \
- : (x) == HMC5883L_GN_330   ? 3.030f    \
-                            : 4.348f)
+(  (x) == HMC5883L_GN_1370  ? 7.299e-4f \
+ : (x) == HMC5883L_GN_1090  ? 9.174e-4f \
+ : (x) == HMC5883L_GN_820   ? 1.220e-3f \
+ : (x) == HMC5883L_GN_660   ? 1.515e-3f \
+ : (x) == HMC5883L_GN_440   ? 2.273e-3f \
+ : (x) == HMC5883L_GN_390   ? 2.564e-3f \
+ : (x) == HMC5883L_GN_330   ? 3.030e-3f \
+                            : 4.348e-3f)
 
 // high speed i2c (400kHz)
 typedef enum hmc5883l_hs_e

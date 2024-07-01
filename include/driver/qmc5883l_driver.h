@@ -33,8 +33,8 @@ typedef enum qmc5883l_rng_e
     QMC5883L_RNG_8G             = 0x10
 } qmc5883l_rng_t;
 
-// LSB resolution (mG/LSB)
-#define QMC5883L_LSB_RESOLUTION(x)  ((x) == QMC5883L_RNG_2G ? 6.104e-2f : 2.441e-1f)
+// LSB resolution (G/LSB)
+#define QMC5883L_LSB_RESOLUTION(x)  ((x) == QMC5883L_RNG_2G ? 6.104e-5f : 2.441e-4f)
 
 // over sample rate
 typedef enum qmc5883l_osr_e
