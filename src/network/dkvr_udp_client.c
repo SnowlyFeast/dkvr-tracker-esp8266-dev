@@ -290,19 +290,19 @@ static void send_inst()
     send_udp(instruction, DKVR_NET_DGRAM_MIN_LEN + instruction->length);
 }
 
-void client_send_handshake1()
+static void client_send_handshake1()
 {
     load_inst(DKVR_OPCODE_HANDSHAKE1, 0, 0);
     send_inst();
 }
 
-void client_send_heartbeat()
+static void client_send_heartbeat()
 {
     load_inst(DKVR_OPCODE_HEARTBEAT, 0, 0);
     send_inst();
 }
 
-void client_send_pong()
+static void client_send_pong()
 {
     load_inst(DKVR_OPCODE_PONG, 0, 0);
     send_inst();
