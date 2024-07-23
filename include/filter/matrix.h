@@ -5,7 +5,7 @@ extern "C" {
 #endif
 
 // flatten given 2d array to 1d array
-#define FLAT(x)     x[0]
+#define FLAT(x)     (x)[0]
 
 // perform (m x n) matrix element-wise addition.
 // it's safe to use the operands as a dst.
