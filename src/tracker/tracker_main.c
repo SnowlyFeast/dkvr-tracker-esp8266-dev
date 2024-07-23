@@ -76,13 +76,16 @@ void init_tracker()
 
         // TODO: implement NSD getter for IMU
 #ifdef DKVR_EKF
-        ekf_set_nsd(0.05f, 0.004f, 0.002f);
+        ekf_set_nsd(7.6e-7f, 1.6e-5f, 4.0e-6f);
+        // ekf_set_nsd(0.05f, 0.004f, 0.002f);
         ekf_init(&imu_raw.accel_out, &imu_raw.mag_out);
 #else
         struct eskf_vector3 accel, mag;
         memcpy(accel.data, &imu_raw.accel_out, sizeof(accel));
         memcpy(mag.data, &imu_raw.mag_out, sizeof(mag));
-        eskf_configure(DKVR_IMU_SAMPLING_PERIOD, 0.5f, 0.5f, 7.6e-7f, 1.6e-5f, 4.0e-6f, 3.8e-5f, 2.0e-5f);
+        
+        // eskf_configure(DKVR_IMU_SAMPLING_PERIOD, 0.5f, 0.5f, 2.74e-7f, 4.0e-6f, 4.0e-6f, 2.5e-5f, 2.0e-5f);
+        // eskf_configure(DKVR_IMU_SAMPLING_PERIOD, 0.5f, 0.5f, 7.6e-7f, 1.6e-5f, 4.0e-6f, 3.8e-5f, 2.0e-5f);
         eskf_init(accel, mag);
 #endif
         break;
