@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-dkvr_err_t dkvr_gpio_init()
+dkvr_err dkvr_gpio_init()
 {
     return DKVR_OK;
 }

@@ -12,12 +12,12 @@ wifi_status_t get_wifi_status()
     return wifi_status;
 }
 
-dkvr_err_t dkvr_wifi_init()
+dkvr_err dkvr_wifi_init()
 {
     return DKVR_OK;
 }
 
-dkvr_err_t dkvr_wifi_connect(const char* ssid, const char* password)
+dkvr_err dkvr_wifi_connect(const char* ssid, const char* password)
 {
     if (wifi_status == WIFI_STATUS_CONNECTED_TO_AP)
         return DKVR_OK;

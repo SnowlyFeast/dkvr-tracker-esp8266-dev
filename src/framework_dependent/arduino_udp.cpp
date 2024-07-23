@@ -17,7 +17,7 @@ udp_server_status_t get_udp_server_status()
     return udp_server_status;
 }
 
-dkvr_err_t dkvr_udp_init()
+dkvr_err dkvr_udp_init()
 {
     return DKVR_OK;
 }
@@ -29,7 +29,7 @@ void dkvr_udp_setup(uint32_t remote_host_ip, uint16_t remote_host_port, uint16_t
     local_port = local_server_port;
 }
 
-dkvr_err_t begin_udp_server()
+dkvr_err begin_udp_server()
 {
     uint8_t result = udp.begin(local_port);
     if (result)

@@ -9,7 +9,7 @@
 
 #define WIRE_SPEED          400000
 
-dkvr_err_t dkvr_i2c_init()
+dkvr_err dkvr_i2c_init()
 {
     Wire.begin();
     Wire.setClock(WIRE_SPEED);

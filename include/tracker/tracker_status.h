@@ -16,12 +16,12 @@ void update_tracker_status();
 uint8_t get_tracker_status_size();
 void* get_tracker_status_ptr();
 
-dkvr_err_t get_tracker_init_result();
-dkvr_err_t get_tracker_last_err();
+dkvr_err get_tracker_init_result();
+dkvr_err get_tracker_last_err();
 uint8_t get_tracker_battery_perc();
 
-void set_tracker_init_result(dkvr_err_t result);
-void set_tracker_last_err(dkvr_err_t err);
+void set_tracker_init_result(dkvr_err result);
+void set_tracker_last_err(dkvr_err err);
 
 #ifdef __cplusplus
 }

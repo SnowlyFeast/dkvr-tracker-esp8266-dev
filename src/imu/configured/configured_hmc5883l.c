@@ -14,7 +14,7 @@ hmc5883l_handle_t hmc5883l_configured_handle = {};
 
 static float mag_lsb_resolution = 0;
 
-dkvr_err_t init_configured_hmc5883l()
+dkvr_err init_configured_hmc5883l()
 {
     hmc5883l_handle_t* hptr = &hmc5883l_configured_handle;
 
@@ -45,7 +45,7 @@ dkvr_err_t init_configured_hmc5883l()
     return DKVR_OK;
 }
 
-dkvr_err_t read_mag_configured_hmc5883l(vector3_t *mag_out, const uint64_t *from)
+dkvr_err read_mag_configured_hmc5883l(vector3_t *mag_out, const uint64_t *from)
 {
     hmc5883l_vec3s_t mag = {};
     hmc5883l_result_t result;

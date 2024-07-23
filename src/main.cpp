@@ -48,7 +48,7 @@ void loop()
 
 static void init_framework()
 {
-    dkvr_err_t result;
+    dkvr_err result;
     int failed = 0;
 
     result = dkvr_adc_init();

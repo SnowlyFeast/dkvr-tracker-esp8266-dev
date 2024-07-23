@@ -27,8 +27,8 @@ static uint32_t last_heartbeat_sent = 0;
 static uint32_t last_heartbeat_recv = 0;
 
 static void reset_netstat();
-static dkvr_err_t update_wifi_and_udp();
-static dkvr_err_t internal_update_client_connection();
+static dkvr_err update_wifi_and_udp();
+static dkvr_err internal_update_client_connection();
 
 static int peek_client_recv();
 static void dispatch_instruction();
@@ -45,7 +45,7 @@ client_status_t get_client_status()
     return client_status;
 }
 
-dkvr_err_t init_dkvr_client(dispatcher_callback callback)
+dkvr_err init_dkvr_client(dispatcher_callback callback)
 {
     dkvr_udp_setup(DKVR_HOST_IP, DKVR_HOST_PORT, DKVR_NET_UDP_SERVER_PORT);
     reset_netstat();
@@ -53,9 +53,9 @@ dkvr_err_t init_dkvr_client(dispatcher_callback callback)
     return DKVR_OK;
 }
 
-dkvr_err_t update_client_connection()
+dkvr_err update_client_connection()
 {
-    dkvr_err_t result = update_wifi_and_udp();
+    dkvr_err result = update_wifi_and_udp();
     if (result != DKVR_OK)
     {
         client_status = CLIENT_DISCONNECTED;
@@ -69,7 +69,7 @@ dkvr_err_t update_client_connection()
     return DKVR_OK;
 }
 
-dkvr_err_t dispatch_received_inst()
+dkvr_err dispatch_received_inst()
 {
     if (client_status == CLIENT_CONNECTED)
     {
@@ -97,7 +97,7 @@ static void reset_netstat()
     last_heartbeat_recv = 0;
 }
 
-static dkvr_err_t update_wifi_and_udp()
+static dkvr_err update_wifi_and_udp()
 {
     if (is_wifi_status_changed())
     {
@@ -106,21 +106,21 @@ static dkvr_err_t update_wifi_and_udp()
 
     if (get_wifi_status() == WIFI_STATUS_DISCONNECTED)
     {
-        dkvr_err_t result = dkvr_wifi_connect(DKVR_WIFI_SSID, DKVR_WIFI_PASSWORD);
+        dkvr_err result = dkvr_wifi_connect(DKVR_WIFI_SSID, DKVR_WIFI_PASSWORD);
         if (result != DKVR_OK)
             return result;
     }
 
     if (get_udp_server_status() == UDP_SERVER_STATUS_CLOSED)
     {
-        dkvr_err_t result = begin_udp_server();
+        dkvr_err result = begin_udp_server();
         if (result != DKVR_OK)
             return result;
     }
     return DKVR_OK;
 }
 
-static dkvr_err_t internal_update_client_connection()
+static dkvr_err internal_update_client_connection()
 {
     static int try_count = 0;
     uint32_t now = dkvr_get_time();

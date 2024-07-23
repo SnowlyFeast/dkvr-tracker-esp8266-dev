@@ -14,7 +14,7 @@ qmc5883l_handle_t qmc5883l_configured_handle = {};
 
 static float mag_lsb_resolution = 0;
 
-dkvr_err_t init_configured_qmc5883l()
+dkvr_err init_configured_qmc5883l()
 {
     qmc5883l_handle_t* hptr = &qmc5883l_configured_handle;
     
@@ -52,7 +52,7 @@ dkvr_err_t init_configured_qmc5883l()
     return DKVR_OK;
 }
 
-dkvr_err_t read_mag_configured_qmc5883l(vector3_t* mag_out, const uint64_t* from)
+dkvr_err read_mag_configured_qmc5883l(vector3_t* mag_out, const uint64_t* from)
 {
     qmc5883l_vec3s_t mag = {};
     qmc5883l_result_t result;

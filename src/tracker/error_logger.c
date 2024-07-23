@@ -5,11 +5,11 @@
 
 #include <tracker/tracker_status.h>
 
-static void log_i2c_err(dkvr_err_t err);
-static void log_imu_handle_err(dkvr_err_t err);
-static void log_network_err(dkvr_err_t err);
+static void log_i2c_err(dkvr_err err);
+static void log_imu_handle_err(dkvr_err err);
+static void log_network_err(dkvr_err err);
 
-void log_dkvr_error(dkvr_err_t err)
+void log_dkvr_error(dkvr_err err)
 {
 #ifdef DKVR_DEBUG_ENABLE
     switch (err & 0xF0)
@@ -33,7 +33,7 @@ void log_dkvr_error(dkvr_err_t err)
     set_tracker_last_err(err);
 }
 
-static void log_i2c_err(dkvr_err_t err)
+static void log_i2c_err(dkvr_err err)
 {
     switch (err)
     {
@@ -58,7 +58,7 @@ static void log_i2c_err(dkvr_err_t err)
     }
 }
 
-static void log_imu_handle_err(dkvr_err_t err)
+static void log_imu_handle_err(dkvr_err err)
 {
     switch (err)
     {
@@ -86,7 +86,7 @@ static void log_imu_handle_err(dkvr_err_t err)
     }
 }
 
-static void log_network_err(dkvr_err_t err)
+static void log_network_err(dkvr_err err)
 {
     switch (err)
     {

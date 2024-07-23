@@ -12,8 +12,8 @@
 
 typedef struct tracker_status_s
 {
-    dkvr_err_t init_result;
-    dkvr_err_t last_err;
+    dkvr_err init_result;
+    dkvr_err last_err;
     uint8_t battery_perc;
 } tracker_status_t;
 
@@ -50,12 +50,12 @@ void* get_tracker_status_ptr()
     return &tracker_status;
 }
 
-dkvr_err_t get_tracker_init_result()
+dkvr_err get_tracker_init_result()
 {
     return tracker_status.init_result;
 }
 
-dkvr_err_t get_tracker_last_err()
+dkvr_err get_tracker_last_err()
 {
     return tracker_status.last_err;
 }
@@ -65,12 +65,12 @@ uint8_t get_tracker_battery_perc()
     return tracker_status.battery_perc;
 }
 
-void set_tracker_init_result(dkvr_err_t result)
+void set_tracker_init_result(dkvr_err result)
 {
     tracker_status.init_result = result;
 }
 
-void set_tracker_last_err(dkvr_err_t err)
+void set_tracker_last_err(dkvr_err err)
 {
     tracker_status.last_err = err;
     err_raised = 1;

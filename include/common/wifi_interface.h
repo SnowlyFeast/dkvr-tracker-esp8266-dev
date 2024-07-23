@@ -15,8 +15,8 @@ typedef enum wifi_status_e
 
 wifi_status_t get_wifi_status();
 
-dkvr_err_t dkvr_wifi_init();
-dkvr_err_t dkvr_wifi_connect(const char* ssid, const char* password);
+dkvr_err dkvr_wifi_init();
+dkvr_err dkvr_wifi_connect(const char* ssid, const char* password);
 int is_wifi_status_changed();
 
 #ifdef __cplusplus

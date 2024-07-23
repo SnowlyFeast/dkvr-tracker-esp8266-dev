@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-dkvr_err_t dkvr_adc_init();
+dkvr_err dkvr_adc_init();
 uint16_t dkvr_adc_read();
 
 #ifdef __cplusplus

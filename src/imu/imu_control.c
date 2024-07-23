@@ -29,7 +29,7 @@
 #define ASSERT_RESULT(func, ...)               \
     do                                         \
     {                                          \
-        dkvr_err_t result = func(__VA_ARGS__); \
+        dkvr_err result = func(__VA_ARGS__); \
         if (result != DKVR_OK)                 \
             return result;                     \
     } while (0)
@@ -46,7 +46,7 @@ int is_imu_data_ready()
     return temp;
 }
 
-dkvr_err_t init_imu()
+dkvr_err init_imu()
 {
 #if defined(HW1_MPU6050)
     ASSERT_RESULT(init_configured_mpu6050, MPU6050_A0_LOW);
@@ -84,7 +84,7 @@ dkvr_err_t init_imu()
 #endif
 }
 
-dkvr_err_t handle_interrupt()
+dkvr_err handle_interrupt()
 {
 #if defined(HW1_MPU6050)
     mpu6050_interrupt_t int_out;
@@ -111,7 +111,7 @@ dkvr_err_t handle_interrupt()
 #endif
 }
 
-dkvr_err_t update_imu_readings()
+dkvr_err update_imu_readings()
 {
 #if defined(HW1_MPU6050)
     ASSERT_RESULT(read_gyro_configured_mpu6050, &imu_raw.gyro_out);

@@ -25,7 +25,7 @@
 #define LOG_IF_ERR(result)       \
     do                           \
     {                            \
-        dkvr_err_t res = result; \
+        dkvr_err res = result; \
         if (res != DKVR_OK)      \
             ERR_LOG_FUNC(res);   \
     } while (0);
@@ -43,8 +43,8 @@ static void tracker_update_led();
 
 void init_tracker()
 {
-    dkvr_err_t net_init_result = init_dkvr_client(instruction_dispatcher);
-    dkvr_err_t imu_init_result = init_imu();
+    dkvr_err net_init_result = init_dkvr_client(instruction_dispatcher);
+    dkvr_err imu_init_result = init_imu();
 
     if (net_init_result != DKVR_OK)
     {
@@ -221,7 +221,7 @@ static void handle_gpio_interrupt()
     // data ready interrupt will not raise on handle_interrupt() returns error
     if (is_imu_data_ready())
     {   
-        dkvr_err_t result = update_imu_readings();
+        dkvr_err result = update_imu_readings();
         if (result)
         {
             log_dkvr_error(result);

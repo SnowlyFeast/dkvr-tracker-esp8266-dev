@@ -19,9 +19,9 @@ extern imu_raw_t imu_raw;
 // the flag clears to 0 after the value has been read
 int is_imu_data_ready();
 
-dkvr_err_t init_imu();
-dkvr_err_t handle_interrupt();
-dkvr_err_t update_imu_readings();
+dkvr_err init_imu();
+dkvr_err handle_interrupt();
+dkvr_err update_imu_readings();
 
 #ifdef __cplusplus
 }

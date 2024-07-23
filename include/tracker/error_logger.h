@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-void log_dkvr_error(dkvr_err_t err);
+void log_dkvr_error(dkvr_err err);
 
 #ifdef __cplusplus
 }

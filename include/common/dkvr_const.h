@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 /* ------------------------------- error code ------------------------------- */
-typedef uint8_t dkvr_err_t;
+typedef uint8_t dkvr_err;
 
 #define DKVR_OK                     0x00
 
@@ -73,13 +73,12 @@ typedef uint8_t dkvr_err_t;
 #define DKVR_OPCODE_LOCATE          0x11
 
 // configuration
-#define DKVR_OPCODE_ACTIVE          0x21
-#define DKVR_OPCODE_INACTIVE        0x22
-#define DKVR_OPCODE_BEHAVIOR        0x23
-#define DKVR_OPCODE_CALIBRATION_GR  0x24
-#define DKVR_OPCODE_CALIBRATION_AC  0x25
-#define DKVR_OPCODE_CALIBRATION_MG  0x26
-#define DKVR_OPCODE_MAG_REF_RECALC  0x27
+#define DKVR_OPCODE_BEHAVIOR        0x21
+#define DKVR_OPCODE_GYR_TRANSFORM   0x22
+#define DKVR_OPCODE_ACC_TRANSFORM   0x23
+#define DKVR_OPCODE_MAG_TRANSFORM   0x24
+#define DKVR_OPCODE_NOISE_VARIANCE  0x25
+#define DKVR_OPCODE_MAG_REF_RECALC  0x28
 
 // data transfer
 #define DKVR_OPCODE_STATUS          0x31

@@ -18,7 +18,7 @@ static mpu6050_handle_t* hptr = &mpu6050_configured_handle;
 static float gyro_lsb_resolution = 0;
 static float accel_lsb_resolution = 0;
 
-dkvr_err_t init_configured_mpu6050(int a0)
+dkvr_err init_configured_mpu6050(int a0)
 {
     memset(hptr, 0, sizeof(mpu6050_handle_t));
     hptr->i2c_read = dkvr_i2c_read;
@@ -60,14 +60,14 @@ dkvr_err_t init_configured_mpu6050(int a0)
     return DKVR_OK;
 }
 
-dkvr_err_t read_interrupt_configured_mpu6050(mpu6050_interrupt_t* int_out)
+dkvr_err read_interrupt_configured_mpu6050(mpu6050_interrupt_t* int_out)
 {
     mpu6050_result_t result = mpu6050_read_intterrupt(hptr, int_out);
 
     return (result == MPU6050_OK) ? DKVR_OK : DKVR_ERR_INT_READ_FAIL;
 }
 
-dkvr_err_t read_gyro_configured_mpu6050(vector3_t* gyro_out)
+dkvr_err read_gyro_configured_mpu6050(vector3_t* gyro_out)
 {
     mpu6050_vec3s_t gyro = {};
     mpu6050_result_t result = mpu6050_read_gyro(hptr, &gyro);
@@ -85,7 +85,7 @@ dkvr_err_t read_gyro_configured_mpu6050(vector3_t* gyro_out)
     return DKVR_OK;
 }
 
-dkvr_err_t read_accel_configured_mpu6050(vector3_t* accel_out)
+dkvr_err read_accel_configured_mpu6050(vector3_t* accel_out)
 {
     mpu6050_vec3s_t accel = {};
     mpu6050_result_t result = mpu6050_read_accel(hptr, &accel);
@@ -103,7 +103,7 @@ dkvr_err_t read_accel_configured_mpu6050(vector3_t* accel_out)
     return DKVR_OK;
 }
 
-dkvr_err_t read_external_configured_mpu6050(uint64_t* ext_out)
+dkvr_err read_external_configured_mpu6050(uint64_t* ext_out)
 {
     mpu6050_result_t result = mpu6050_read_external(hptr, (uint8_t*)ext_out);
     if (result != MPU6050_OK)

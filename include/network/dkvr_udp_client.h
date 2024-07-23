@@ -19,9 +19,9 @@ typedef enum client_status_e
 typedef void (*dispatcher_callback) (uint8_t opcode, byte_pack_t* payload);
 
 client_status_t get_client_status();
-dkvr_err_t init_dkvr_client(dispatcher_callback callback);
-dkvr_err_t update_client_connection();
-dkvr_err_t dispatch_received_inst();
+dkvr_err init_dkvr_client(dispatcher_callback callback);
+dkvr_err update_client_connection();
+dkvr_err dispatch_received_inst();
 void send_client_inst(uint8_t opcode, uint8_t len, uint8_t align, const void* payload);
 
 #ifdef __cplusplus

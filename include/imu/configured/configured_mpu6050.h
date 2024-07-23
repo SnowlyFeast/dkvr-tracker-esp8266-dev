@@ -14,11 +14,11 @@ extern "C" {
 
 extern mpu6050_handle_t mpu6050_configured_handle;
 
-dkvr_err_t init_configured_mpu6050(int a0);
-dkvr_err_t read_interrupt_configured_mpu6050(mpu6050_interrupt_t* int_out);
-dkvr_err_t read_gyro_configured_mpu6050(vector3_t* gyro_out);
-dkvr_err_t read_accel_configured_mpu6050(vector3_t* accel_out);
-dkvr_err_t read_external_configured_mpu6050(uint64_t* ext_out);
+dkvr_err init_configured_mpu6050(int a0);
+dkvr_err read_interrupt_configured_mpu6050(mpu6050_interrupt_t* int_out);
+dkvr_err read_gyro_configured_mpu6050(vector3_t* gyro_out);
+dkvr_err read_accel_configured_mpu6050(vector3_t* accel_out);
+dkvr_err read_external_configured_mpu6050(uint64_t* ext_out);
 
 #ifdef __cplusplus
 }
