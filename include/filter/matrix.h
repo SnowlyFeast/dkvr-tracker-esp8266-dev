@@ -32,15 +32,7 @@ void matrix_mul_scalar(int m, int n, float* src, float scalar);
 // this function does not perform pivoting, thus diagonal element must not be zero.
 void matrix_inv(int n, float* src, float* dst);
 
-// perform (3 x 3) matrix inversion.
-// it's UNSAFE to use the operands as ad dst
-void matrix_inv_33(const float* src, float* dst);
-
-// perform (6 x 6) matrix inversion.
-// result will overwrite the src matrix
-void matrix_inv_66(const float* src);
-
-// create skew symmetric metrix with given vector.
+// create skew symmetric matrix with given vector.
 // only 3 front elements of src array is used.
 // it's SAFE to use the src as a dst.
 void matrix_skew_symmetrize(const float* src, float* dst);

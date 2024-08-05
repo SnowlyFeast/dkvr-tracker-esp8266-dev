@@ -5,11 +5,11 @@
 #include "common/dkvr_const.h"
 #include "common/dkvr_core.h"
 
-static wifi_status_t wifi_status = WIFI_STATUS_DISCONNECTED;
+static int wifi_connected = 0;
 
-wifi_status_t get_wifi_status()
+int dkvr_wifi_is_connected()
 {
-    return wifi_status;
+    return wifi_connected;
 }
 
 dkvr_err dkvr_wifi_init()
@@ -19,7 +19,7 @@ dkvr_err dkvr_wifi_init()
 
 dkvr_err dkvr_wifi_connect(const char* ssid, const char* password)
 {
-    if (wifi_status == WIFI_STATUS_CONNECTED_TO_AP)
+    if (wifi_connected)
         return DKVR_OK;
     
     WiFi.mode(WIFI_STA);
@@ -38,19 +38,19 @@ dkvr_err dkvr_wifi_connect(const char* ssid, const char* password)
     }
 
     PRINTLN("WiFi connected with IP : ", WiFi.localIP().toString().c_str());
-    wifi_status = WIFI_STATUS_CONNECTED_TO_AP;
+    wifi_connected = 1;
     
     return DKVR_OK;
 }
 
-int is_wifi_status_changed()
+void dkvr_wifi_update_conection()
 {
-    if (wifi_status == WIFI_STATUS_CONNECTED_TO_AP) {
-        if (WiFi.status() != WL_CONNECTED) {
-            wifi_status = WIFI_STATUS_DISCONNECTED;
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        if (wifi_connected)
+        {
+            wifi_connected = 0;
             WiFi.disconnect();
-            return 1;
         }
     }
-    return 0;
 }

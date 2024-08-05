@@ -6,6 +6,7 @@
 extern "C" {
 #endif
 
+// FIXME
 typedef void (*wakeup_callback) (void);
 
 void esp_set_int_wakeup_gpio(uint32_t gpio_num);

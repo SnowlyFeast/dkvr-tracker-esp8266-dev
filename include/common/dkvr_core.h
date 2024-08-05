@@ -3,7 +3,7 @@
 #include "user_configuration.h"
 
 #include "dkvr_const.h"
-#include "dkvr_hardware_id.h"
+#include "dkvr_ii_implemented_list.h"
 #include "dkvr_types.h"
 
 /* -------------------- check required user configuration ------------------- */
@@ -38,25 +38,9 @@
 #   error DKVR_HOST_IP is not valid IP address
 #endif
 
-
-#ifndef DKVR_HARDWARE_ID_1
-#   error DKVR_HARDWARE_ID_1 not specified
+#ifndef DKVR_IMU_INTERFACE_IMPLEMENTER
+#   error DKVR_IMU_INTERFACE_IMPLEMENTER not specified
 #endif
-#ifndef DKVR_HARDWARE_ID_2
-#   error DKVR_HARDWARE_ID_2 not specified
-#endif
-
-#define DKVR_HARDWARE_TYPES (DKVR_HARDWARE_ID_1 | DKVR_HARDWARE_ID_2)
-#if !(DKVR_HARDWARE_TYPES & TYPE_GYRO)
-#error DKVR_HARDWARE_ID 1 or 2 does not contain gyro
-#endif
-#if !(DKVR_HARDWARE_TYPES & TYPE_ACCEL)
-#error DKVR_HARDWARE_ID 1 or 2 does not contain accel
-#endif
-#if!(DKVR_HARDWARE_TYPES & TYPE_MAG)
-#error DKVR_HARDWARE_ID 1 or 2 does not contain mag
-#endif
-#undef DKVR_HARDWARE_TYPES
 
 #ifndef DKVR_HARDWARE_GYRO_X_HEADING
 #   error DKVR_HARDWARE_GYRO_X_HEADING not specified
@@ -399,5 +383,8 @@
 
 #ifndef PROGMEM
 #   define PROGMEM
-#   define memcpy_P memcpy
+#   define PSTR
+#   define PGM_P        const char*
+#   define memcpy_P     memcpy
+#   define strlen_P     strlen
 #endif

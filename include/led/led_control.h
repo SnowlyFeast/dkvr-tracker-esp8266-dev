@@ -4,23 +4,24 @@
 extern "C" {
 #endif
 
-typedef enum led_mode_e
+typedef enum
 {
-    LED_MODE_MANUAL,
-    LED_MODE_SLOWEST,
-    LED_MODE_NORMAL,
-    LED_MODE_FASTEST,
-    LED_MODE_DOUBLE_TAB,
-    LED_MODE_TRIPLE_TAB
-} led_mode_t;
+    DKVR_LED_MODE_MANUAL,
+    DKVR_LED_MODE_SLOWEST,
+    DKVR_LED_MODE_NORMAL,
+    DKVR_LED_MODE_FASTEST,
+    DKVR_LED_MODE_DOUBLE_TAP,
+    DKVR_LED_MODE_TRIPLE_TAP
+} dkvr_led_mode;
 
-led_mode_t get_led_mode();
-void turn_on_led();
-void turn_off_led();
-void set_led_mode(led_mode_t mode);
-void interrupt_led_for_locate();
-void interrupt_led_for_low_battery();
-void update_led();
+dkvr_led_mode dkvr_led_get_mode();
+
+void dkvr_led_on();
+void dkvr_led_off();
+void dkvr_led_set_mode(dkvr_led_mode mode);
+void dkvr_led_interrupt_for_locate();
+void dkvr_led_interrupt_for_low_battery();
+void dkvr_led_update();
 
 #ifdef __cplusplus
 }

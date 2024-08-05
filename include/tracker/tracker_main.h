@@ -4,10 +4,10 @@
 extern "C" {
 #endif
 
-extern volatile int gpio_interrupt;
+void tracker_main_set_gpio_interrupted();
 
-void init_tracker();
-void update_tracker();
+int tracker_main_init();
+void tracker_main_update();
 
 #ifdef __cplusplus
 }

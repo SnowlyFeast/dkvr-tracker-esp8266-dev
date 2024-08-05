@@ -6,18 +6,11 @@
 extern "C" {
 #endif
 
-typedef enum wifi_status_e
-{
-    WIFI_STATUS_DISCONNECTED,
-    WIFI_STATUS_CONNECTED_TO_AP
-} wifi_status_t;
-
-
-wifi_status_t get_wifi_status();
+int dkvr_wifi_is_connected();
 
 dkvr_err dkvr_wifi_init();
 dkvr_err dkvr_wifi_connect(const char* ssid, const char* password);
-int is_wifi_status_changed();
+void dkvr_wifi_update_conection();
 
 #ifdef __cplusplus
 }

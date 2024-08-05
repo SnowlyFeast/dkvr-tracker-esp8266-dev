@@ -8,170 +8,176 @@
 #define HMC5883L_REG_MODE                   0x02    // Mode Register
 #define HMC5883L_REG_STATUS                 0x09    // Status Register
 
-// Configuration Const
-#define HMC5883L_CONFIG_A_UNSET_MASK_MA     0x9F
-#define HMC5883L_CONFIG_A_UNSET_MASK_DO     0xE3
-#define HMC5883L_CONFIG_A_UNSET_MASK_MS     0xFC
-#define HMC5883L_MODE_UNSET_MASK_HS         0x7F
-#define HMC5883L_MODE_UNSET_MASK_MD         0xFC
+// configuration bit mask
+#define MASK_CONFIG_A_MA                    0b01100000
+#define MASK_CONFIG_A_DO                    0b00011100
+#define MASK_CONFIG_A_MS                    0b00000011
+#define MASK_CONFIG_B_GN                    0b11100000
+#define MASK_MODE_HS                        0b10000000
+#define MASK_MODE_MD                        0b00000011
 
 
-#define ASSERT_RESULT(hptr)                 if ((hptr)->i2c_result) return (hptr)->i2c_result
+typedef struct hmc5883l_handle handle;
+typedef struct hmc5883l_configuration config;
 
-static inline uint8_t hmc5883l_read(hmc5883l_handle_t* hptr, uint8_t reg, uint8_t len, uint8_t* buffer)
+static inline uint8_t hmc5883l_read(handle* hptr, uint8_t reg, uint8_t len, uint8_t* buffer)
 {
-    return (hptr->i2c_result = hptr->i2c_read(HMC5883L_DEVICE_ADDRESS, reg, len, buffer, 0));
+    return hptr->i2c_read(HMC5883L_DEVICE_ADDRESS, reg, len, buffer, 0);
 }
 
-static inline uint8_t hmc5883l_write(hmc5883l_handle_t* hptr, uint8_t reg, uint8_t len, const uint8_t* buffer)
+static inline uint8_t hmc5883l_write(handle* hptr, uint8_t reg, uint8_t len, const uint8_t* buffer)
 {
-    return (hptr->i2c_result = hptr->i2c_write(HMC5883L_DEVICE_ADDRESS, reg, len, buffer, 0));
+    return hptr->i2c_write(HMC5883L_DEVICE_ADDRESS, reg, len, buffer, 0);
 }
 
-void hmc5883l_set_ma(hmc5883l_conf_t *cptr, hmc5883l_ma_t ma)
+static float mag_lsb_resolution(uint8_t config_b)
 {
-    cptr->config_a &= HMC5883L_CONFIG_A_UNSET_MASK_MA;
-    cptr->config_a |= ma;
+    switch (config_b & 0xE0)
+    {
+    case HMC5883L_GN_1370:
+        return 7.299e-4f;
+    case HMC5883L_GN_1090:
+        return 9.174e-4f;
+    case HMC5883L_GN_820:
+        return 1.220e-3f;
+    case HMC5883L_GN_660:
+        return 1.515e-3f;
+    case HMC5883L_GN_440:
+        return 2.273e-3f;
+    case HMC5883L_GN_390:
+        return 2.564e-3f;
+    case HMC5883L_GN_330:
+        return 3.030e-3f;
+    case HMC5883L_GN_230:
+        return 4.348e-3f;
+    default:
+        return 0;
+    }
 }
 
-void hmc5883l_set_do(hmc5883l_conf_t *cptr, hmc5883l_do_t dor)
+
+void hmc5883l_set_measurement_averaged(struct hmc5883l_configuration* config, hmc5883l_ma ma)
 {
-    cptr->config_a &= HMC5883L_CONFIG_A_UNSET_MASK_DO;
-    cptr->config_a |= dor;
+    config->config_a &= ~MASK_CONFIG_A_MA;
+    config->config_a |= ma;
 }
 
-void hmc5883l_set_ms(hmc5883l_conf_t *cptr, hmc5883l_ms_t ms)
+void hmc5883l_set_data_output_rate(struct hmc5883l_configuration* config, hmc5883l_do dor)
 {
-    cptr->config_a &= HMC5883L_CONFIG_A_UNSET_MASK_MS;
-    cptr->config_a |= ms;
+    config->config_a &= ~MASK_CONFIG_A_DO;
+    config->config_a |= dor;
 }
 
-void hmc5883l_set_gn(hmc5883l_conf_t *cptr, hmc5883l_gn_t gn)
+void hmc5883l_set_measurement_configuration(struct hmc5883l_configuration* config, hmc5883l_ms ms)
 {
-    cptr->config_b = gn;
+    config->config_a &= ~MASK_CONFIG_A_MS;
+    config->config_a |= ms;
 }
 
-void hmc5883l_set_hs(hmc5883l_conf_t *cptr, hmc5883l_hs_t hs)
+void hmc5883l_set_gain(struct hmc5883l_configuration* config, hmc5883l_gn gain)
 {
-    cptr->mode &= HMC5883L_MODE_UNSET_MASK_HS;
-    cptr->mode |= hs;
+    config->config_b &= ~MASK_CONFIG_B_GN;
+    config->config_b |= gain;
 }
 
-void hmc5883l_set_md(hmc5883l_conf_t *cptr, hmc5883l_md_t md)
+void hmc5883l_set_high_speed_i2c(struct hmc5883l_configuration* config, int enable)
 {
-    cptr->mode &= HMC5883L_MODE_UNSET_MASK_MD;
-    cptr->mode |= md;
+    enable ? (config->mode |= MASK_MODE_HS) : (config->mode &= ~MASK_MODE_HS);
 }
 
-void hmc5883l_attach_i2c_read(hmc5883l_handle_t *hptr, hmc5883l_i2c_read_callback callback)
+void hmc5883l_set_operating_mode(struct hmc5883l_configuration* config, hmc5883l_md mode)
 {
-    hptr->i2c_read = callback;
+    config->mode &= ~MASK_MODE_MD;
+    config->mode |= mode;
 }
 
-void hmc5883l_attach_i2c_write(hmc5883l_handle_t *hptr, hmc5883l_i2c_write_callback callback)
+hmc5883l_handle_test_result hmc5883l_test_handle(struct hmc5883l_handle* hptr)
 {
-    hptr->i2c_write = callback;
-}
-
-void hmc5883l_attach_delay(hmc5883l_handle_t *hptr, hmc5883l_delay_callback callback)
-{
-    hptr->delay = callback;
-}
-
-hmc5883l_result_t hmc5883l_assert_handle(hmc5883l_handle_t *hptr)
-{
-    hmc5883l_result_t result = HMC5883L_OK;
-    if (!hptr->i2c_read)
-        result |= HMC5883L_MISSING_I2C_R_CB;
-    if (!hptr->i2c_write)
-        result |= HMC5883L_MISSING_I2C_W_CB;
-    if (!hptr->delay)
-        result |= HMC5883L_MISSING_DELAY_CB;
-
-    // incomplete handle
-    if (result)
-        return result;
-
-    // test i2c read / write
+    // check callback
+    if (!hptr->i2c_read || !hptr->i2c_write || !hptr->delay)
+        return HMC5883L_HANDLE_MISSING_CALLBACK;
+    
+    // test R/W
     uint8_t temp;
     if (hmc5883l_read(hptr, HMC5883L_REG_MODE, 1, &temp))
-        return HMC5883L_I2C_RW_FAIL;
+        return HMC5883L_HANDLE_I2C_READ_FAILED;
     if (hmc5883l_write(hptr, HMC5883L_REG_MODE, 1, &temp))
-        return HMC5883L_I2C_RW_FAIL;
-
-    return HMC5883L_OK;
+        return HMC5883L_HANDLE_I2C_WRITE_FAILED;
+    
+    return HMC5883L_HANDLE_OK;
 }
 
-uint8_t hmc5883l_configure(hmc5883l_handle_t *hptr, const hmc5883l_conf_t new_conf)
+uint8_t hmc5883l_configure(struct hmc5883l_handle* hptr, const struct hmc5883l_configuration new_config)
 {
-    hmc5883l_write(hptr, HMC5883L_REG_CONF_A, 1, &new_conf.config_a);
-    ASSERT_RESULT(hptr);
-    hptr->conf.config_a = new_conf.config_a;
+    uint8_t err;
 
-    hmc5883l_write(hptr, HMC5883L_REG_CONF_B, 1, &new_conf.config_b);
-    ASSERT_RESULT(hptr);
-    hptr->conf.config_b = new_conf.config_b;
+    err = hmc5883l_write(hptr, HMC5883L_REG_CONF_A, 1, &new_config.config_a);
+    if (err) return err;
+    hptr->config.config_a = new_config.config_a;
 
-    hmc5883l_write(hptr, HMC5883L_REG_MODE, 1, &new_conf.mode);
-    ASSERT_RESULT(hptr);
-    hptr->conf.mode = new_conf.mode;
+    err = hmc5883l_write(hptr, HMC5883L_REG_CONF_B, 1, &new_config.config_b);
+    if (err) return err;
+    hptr->config.config_b = new_config.config_b;
+
+    err = hmc5883l_write(hptr, HMC5883L_REG_MODE, 1, &new_config.mode);
+    if (err) return err;
+    hptr->config.mode = new_config.mode;
 
     return 0;
 }
 
-uint8_t hmc5883l_take_single_measure(hmc5883l_handle_t *hptr)
+uint8_t hmc5883l_take_single_measurement(struct hmc5883l_handle* hptr)
 {
-    uint8_t mode = (hptr->conf.mode & HMC5883L_MODE_UNSET_MASK_MD) | HMC5883L_MD_SINGLE;
-    hmc5883l_write(hptr, HMC5883L_REG_MODE, 1, &mode);
-    ASSERT_RESULT(hptr);
-
-    return 0;
+    uint8_t mode = (hptr->config.mode & ~MASK_MODE_MD) | HMC5883L_MD_SINGLE;
+    uint8_t err = hmc5883l_write(hptr, HMC5883L_REG_MODE, 1, &mode);
+    return err;
 }
 
-uint8_t hmc5883l_read_mag(hmc5883l_handle_t *hptr, hmc5883l_vec3s_t *out)
+uint8_t hmc5883l_read_mag(struct hmc5883l_handle* hptr, float* mag_out)
 {
-    uint8_t buffer[8];
-    memset(buffer, 0, 8);
-    hmc5883l_read(hptr, HMC5883L_REG_DATA_BEGIN, 6, buffer);
-    ASSERT_RESULT(hptr);
+    uint16_t buffer[3];
+    uint8_t err = hmc5883l_read(hptr, HMC5883L_REG_DATA_BEGIN, 6, (uint8_t*)buffer);
+    if (err) return err;
 
-#if defined(__BYTE_ORDER__)&&(__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-    static_assert(sizeof(buffer) == sizeof(hmc5883l_vec3s_t));
-    memcpy(out, buffer, 8);
+    // endian conversion
+#if defined(__BYTE_ORDER__)&&(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+    uint8_t* ptr = (uint8_t*)buffer;
+    buffer[0] = ((int16_t)ptr[0] << 8) | ptr[1];
+    buffer[1] = ((int16_t)ptr[4] << 8) | ptr[5];    // FUCKING retarded memory layout
+    buffer[2] = ((int16_t)ptr[2] << 8) | ptr[3];
 #else
-    out->x = ((int16_t)buffer[0] << 8) | buffer[1];
-    out->y = ((int16_t)buffer[4] << 8) | buffer[5];
-    out->z = ((int16_t)buffer[2] << 8) | buffer[3];
+    uint16_t temp = buffer[1];
+    buffer[1] = buffer[2];
+    buffer[2] = temp;
 #endif
 
-    // overflow
-    if (out->x == -4096)
-        out->x = 0;
-    if (out->y == -4096)
-        out->y = 0;
-    if (out->z == -4096)
-        out->z = 0;
+    // overflow check
+    for (int i = 0; i < 3; i++)
+        if (buffer[i] == -4096)
+            buffer[i] = 0;
+
+    float resolution = mag_lsb_resolution(hptr->config.config_b);
+    for (int i = 0; i <3; i++)
+        mag_out[i] = buffer[i] * resolution;
 
     return 0;
 }
 
-uint8_t hmc5883l_read_mag_from(hmc5883l_handle_t *hptr, hmc5883l_vec3s_t *out, uint64_t from)
+void hmc5883l_convert_mag_from_external(struct hmc5883l_handle* hptr, uint8_t* ext_read, float* mag_out)
 {
-    uint8_t* ptr = (uint8_t*)&from;
+    float resolution = mag_lsb_resolution(hptr->config.config_b);
+    if (ext_read[0] != 0xF0 && ext_read[1] != 0x00)
+        mag_out[0] = (float)(((uint16_t)ext_read[0] << 8) | ext_read[1]) * resolution;
+    else
+        mag_out[0] = 0;
 
-    if (ptr[0] != 0xF0 && ptr[1] != 0x00)
-        out->x = ((int16_t)ptr[0] << 8) | ptr[1];
+    if (ext_read[4] != 0xF0 && ext_read[5] != 0x00)
+        mag_out[1] = (float)(((uint16_t)ext_read[4] << 8) | ext_read[5]) * resolution;
+    else
+        mag_out[1] = 0;
 
-    if (ptr[4] != 0xF0 && ptr[5] != 0x00)
-        out->y = ((int16_t)ptr[4] << 8) | ptr[5];
-
-    if (ptr[2] != 0xF0 && ptr[3] != 0x00)
-        out->z = ((int16_t)ptr[2] << 8) | ptr[3];
-
-    return 0;
-}
-
-float hmc5883l_get_mag_resolution(hmc5883l_handle_t* hptr)
-{
-    return HMC5883L_LSB_RESOLUTION(hptr->conf.config_b & 0xE0);
+    if (ext_read[2] != 0xF0 && ext_read[3] != 0x00)
+        mag_out[2] = (float)(((uint16_t)ext_read[2] << 8) | ext_read[3]) * resolution;
+    else
+        mag_out[2] = 0;
 }

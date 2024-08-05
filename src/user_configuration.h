@@ -13,21 +13,13 @@
 /* -------------------------------------------------------------------------- */
 /*                             IMU Hardware Setup                             */
 /* -------------------------------------------------------------------------- */
-#define DKVR_HARDWARE_ID_1          DVKR_HARDWARE_ID_MPU6050
-#define DKVR_HARDWARE_ID_2          DKVR_HARDWARE_ID_HMC5883L
-#define DKVR_HARDWARE_ENABLE_MPU6050_MASTER
-
-/* -------------------------------------------------------------------------- */
-/*                         IMU Hardware Configuration                         */
-/* -------------------------------------------------------------------------- */
-// #define DKVR_HARDWARE_SECOND_MODULE
-// #define DKVR_HARDWARE_RUN_SELF_TEST
+#define DKVR_IMU_INTERFACE_IMPLEMENTER  ii_mpu6050_hmc5883l
 
 
 /* -------------------------------------------------------------------------- */
 /*                         IMU Placement Configuration                        */
 /* -------------------------------------------------------------------------- */
-// use one of the following :   X, Y, Z, NEG_X, NEG_Y, NEG_Z
+// use one of the followings :   X, Y, Z, NEG_X, NEG_Y, NEG_Z
 #define DKVR_HARDWARE_GYRO_X_HEADING    Z
 #define DKVR_HARDWARE_GYRO_Y_HEADING    NEG_Y
 #define DKVR_HARDWARE_ACCEL_X_HEADING   Z
@@ -47,10 +39,11 @@
 /* -------------------------------------------------------------------------- */
 /*                                DEBUG OPTIONS                               */
 /* -------------------------------------------------------------------------- */
-#define DKVR_STATISTIC_ENABLE
-
 #define DKVR_DEBUG_ENABLE
+
 // #define DKVR_DEBUG_I2C
-// #define DKVR_DEBUG_IMU
 // #define DKVR_DEBUG_NET_SEND
 // #define DKVR_DEBUG_NET_RECV
+
+
+#define DKVR_DEBUG_USE_LOGGER

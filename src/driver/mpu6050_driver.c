@@ -51,198 +51,162 @@
 #define MPU6050_I2C_SLV0_EN_BIT     0x80
 
 
-#define ASSERT_RESULT(hptr)         if ((hptr)->i2c_result) return (hptr)->i2c_result
+typedef struct mpu6050_handle handle;
+typedef struct mpu6050_configuration configuration;
 
-#define MPU6050_READ_CONFIG(hptr, key, reg)              \
-    do                                                   \
-    {                                                    \
-        mpu6050_read(hptr, reg, 1, &((hptr)->conf.key)); \
-        ASSERT_RESULT(hptr);                             \
-    } while (0);
-
-#define MPU6050_UPDATE_CONFIG(hptr, cptr, key, reg)    \
-    do                                                 \
-    {                                                  \
-        if ((hptr)->conf.key != (cptr)->key)           \
-        {                                              \
-            mpu6050_write(hptr, reg, 1, &(cptr)->key); \
-            ASSERT_RESULT(hptr);                       \
-            (hptr)->conf.key = (cptr)->key;            \
-        }                                              \
-    } while (0)
-
-static inline uint8_t mpu6050_read(mpu6050_handle_t* hptr, uint8_t reg, uint8_t len, uint8_t* buffer)
+static inline uint8_t mpu6050_read(handle* hptr, uint8_t reg, uint8_t len, uint8_t* buffer)
 {
-    return (hptr->i2c_result = hptr->i2c_read(hptr->conf.address, reg, len, buffer, 0));
+    return hptr->i2c_read(hptr->config.address, reg, len, buffer, 0);
 }
 
-static inline uint8_t mpu6050_write(mpu6050_handle_t* hptr, uint8_t reg, uint8_t len, const uint8_t* buffer)
+static inline uint8_t mpu6050_write(handle* hptr, uint8_t reg, uint8_t len, const uint8_t* buffer)
 {
-    return (hptr->i2c_result = hptr->i2c_write(hptr->conf.address, reg, len, buffer, 0));
+    return hptr->i2c_write(hptr->config.address, reg, len, buffer, 0);
 }
 
-void mpu6050_set_address(mpu6050_handle_t* hptr, mpu6050_address_t address)
+static inline uint8_t update_configuration_key(handle* hptr, configuration* newconf, size_t offset, uint8_t reg)
 {
-    hptr->conf.address = address;
+    uint8_t value = ((uint8_t*)newconf)[offset];
+    uint8_t* target = (uint8_t*)&hptr->config + offset;
+    if (*target != value)
+    {
+        uint8_t err = mpu6050_write(hptr, reg, 1, &value);
+        if (err) return err;
+        *target = value;
+    }
+    return 0;
 }
 
-void mpu6050_set_clksel(mpu6050_conf_t* cptr, mpu6050_clksel_t clksel)
+static inline float gyro_lsb_resolution(uint8_t gyro_fsr)
 {
-    cptr->clksel = clksel;
+    switch (gyro_fsr)
+    {
+        case MPU6050_GYRO_FSR_250_BIT:
+            return 7.629e-3f;
+        case MPU6050_GYRO_FSR_500_BIT:
+            return 1.526e-2f;
+        case MPU6050_GYRO_FSR_1000_BIT:
+            return 3.052e-2f;
+        case MPU6050_GYRO_FSR_2000_BIT:
+            return 6.104e-2f;
+        default:
+            return 0;
+    }
 }
 
-void mpu6050_set_sampling_rate(mpu6050_conf_t* cptr, uint8_t smplrt)
+static inline float accel_lsb_resolution(uint8_t accel_fsr)
 {
-    cptr->smplrt = smplrt;
+    switch (accel_fsr)
+    {
+        case MPU6050_ACCEL_FSR_2_BIT:
+            return 6.104e-5f;
+        case MPU6050_ACCEL_FSR_4_BIT:
+            return 1.221e-4f;
+        case MPU6050_ACCEL_FSR_8_BIT:
+            return 2.441e-4f;
+        case MPU6050_ACCEL_FSR_16_BIT:
+            return 4.883e-4f;
+        default:
+            return 0;
+    }
 }
 
-void mpu6050_set_dlpf(mpu6050_conf_t* cptr, mpu6050_dlpf_t dlpf)
-{
-    cptr->dlpf = dlpf;
-}
+void mpu6050_set_address(struct mpu6050_configuration* config, mpu6050_address address) { config->address = address; }
+void mpu6050_set_clksel(struct mpu6050_configuration* config, mpu6050_clksel clksel) { config->clksel = clksel; }
+void mpu6050_set_sampling_rate(struct mpu6050_configuration* config, uint8_t sampling_rate) { config->smplrt = sampling_rate; }
+void mpu6050_set_dlpf(struct mpu6050_configuration* config, mpu6050_dlpf dlpf) { config->dlpf = dlpf; }
+void mpu6050_set_gyro_fsr(struct mpu6050_configuration* config, mpu6050_gyro_fsr gyro_fsr) { config->gyro_fsr = gyro_fsr; }
+void mpu6050_set_accel_fsr(struct mpu6050_configuration* config, mpu6050_accel_fsr accel_fsr) { config->accel_fsr = accel_fsr; }
 
-void mpu6050_set_gyro_fsr(mpu6050_conf_t* cptr, mpu6050_gyro_fsr_t gyro_fsr)
-{
-    cptr->gyro_fsr = gyro_fsr;
-}
+void mpu6050_enable_temp_fifo(struct mpu6050_configuration* config) { config->fifo_en |= 0x80; }
+void mpu6050_enable_gyro_x_fifo(struct mpu6050_configuration* config) { config->fifo_en |= 0x40; }
+void mpu6050_enable_gyro_y_fifo(struct mpu6050_configuration* config) { config->fifo_en |= 0x20; }
+void mpu6050_enable_gyro_z_fifo(struct mpu6050_configuration* config) { config->fifo_en |= 0x10; }
+void mpu6050_enable_accel_fifo(struct mpu6050_configuration* config) { config->fifo_en |= 0x08; }
+void mpu6050_enable_slv_2_fifo(struct mpu6050_configuration* config) { config->fifo_en |= 0x04; }
+void mpu6050_enable_slv_1_fifo(struct mpu6050_configuration* config) { config->fifo_en |= 0x02; }
+void mpu6050_enable_slv_0_fifo(struct mpu6050_configuration* config) { config->fifo_en |= 0x01; }
 
-void mpu6050_set_accel_fsr(mpu6050_conf_t* cptr, mpu6050_accel_fsr_t accel_fsr)
-{
-    cptr->accel_fsr = accel_fsr;
-}
+void mpu6050_enable_int_active_low(struct mpu6050_configuration* config) { config->int_conf |= 0x80; }
+void mpu6050_enable_int_open_drain(struct mpu6050_configuration* config) { config->int_conf |= 0x40; }
+void mpu6050_enable_latch_int_en(struct mpu6050_configuration* config) { config->int_conf |= 0x20; }
+void mpu6050_enable_int_rd_clr(struct mpu6050_configuration* config) { config->int_conf |= 0x10; }
+void mpu6050_enable_i2c_bypass_en(struct mpu6050_configuration* config) { config->int_conf |= 0x02; }
 
-void mpu6050_set_fifo_en(mpu6050_conf_t* cptr, mpu6050_fifo_en_t fifo_en)
-{
-    cptr->fifo_en = fifo_en;
-}
+void mpu6050_enable_fifo_oflow_en(struct mpu6050_configuration* config) { config->int_enable |= 0x10; }
+void mpu6050_enable_i2c_mst_int_en(struct mpu6050_configuration* config) { config->int_enable |= 0x08; }
+void mpu6050_enable_data_rdy_en(struct mpu6050_configuration* config) { config->int_enable |= 0x01; }
 
-void mpu6050_set_int_conf(mpu6050_conf_t* cptr, mpu6050_int_conf_t int_conf)
-{
-    cptr->int_conf = int_conf;
-}
+void mpu6050_enable_fifo_en(struct mpu6050_configuration* config) { config->user_ctrl |= 0x40; }
+void mpu6050_enable_i2c_mst_en(struct mpu6050_configuration* config) { config->user_ctrl |= 0x20; }
+void mpu6050_enable_i2c_if_dis(struct mpu6050_configuration* config) { config->user_ctrl |= 0x10; }
+void mpu6050_enable_fifo_reset(struct mpu6050_configuration* config) { config->user_ctrl |= 0x04; }
+void mpu6050_enable_i2c_mst_reset(struct mpu6050_configuration* config) { config->user_ctrl |= 0x02; }
+void mpu6050_enable_sig_cond_reset(struct mpu6050_configuration* config) { config->user_ctrl |= 0x01; }
 
-void mpu6050_set_int_en(mpu6050_conf_t* cptr, mpu6050_int_en_t int_en)
-{
-    cptr->int_enable = int_en;
-}
+int mpu6050_is_fifo_oflow_interrupt(mpu6050_interrupt interrupt) { return (interrupt & 0x10);}
+int mpu6050_is_i2c_mst_interrupt(mpu6050_interrupt interrupt) { return (interrupt & 0x08); }
+int mpu6050_is_data_rdy_interrupt(mpu6050_interrupt interrupt) { return (interrupt & 0x01); }
 
-void mpu6050_attach_i2c_read(mpu6050_handle_t* hptr, mpu6050_i2c_read_callback callback)
-{
-    hptr->i2c_read = callback;
-}
 
-void mpu6050_attach_i2c_write(mpu6050_handle_t* hptr, mpu6050_i2c_write_callback callback)
+mpu6050_handle_test_result mpu6050_test_handle(struct mpu6050_handle* hptr)
 {
-    hptr->i2c_write = callback;
-}
-
-void mpu6050_attach_delay(mpu6050_handle_t *hptr, mpu6050_delay_callback callback)
-{
-    hptr->delay = callback;
-}
-
-mpu6050_result_t mpu6050_assert_handle(mpu6050_handle_t *hptr)
-{
-    mpu6050_result_t result = MPU6050_OK;
-    if (!hptr->i2c_read)
-        result |= MPU6050_MISSING_I2C_R_CB;
-    if (!hptr->i2c_write)
-        result |= MPU6050_MISSING_I2C_W_CB;
-    if (!hptr->delay)
-        result |= MPU6050_MISSING_DELAY_CB;
-
-    // incomplete handle
-    if (result)
-        return result;
+    // check callback
+    if (!hptr->i2c_read || !hptr->i2c_write || !hptr->delay)
+        return MPU6050_HANDLE_MISSING_CALLBACK;
     
-    // test i2c read / write
+    // test R/W
     uint8_t temp;
     if (mpu6050_read(hptr, MPU6050_REG_CONFIG, 1, &temp))
-        return MPU6050_I2C_RW_FAIL;
+        return MPU6050_HANDLE_I2C_READ_FAILED;
     if (mpu6050_write(hptr, MPU6050_REG_CONFIG, 1, &temp))
-        return MPU6050_I2C_RW_FAIL;
+        return MPU6050_HANDLE_I2C_WRITE_FAILED;
     
-    return MPU6050_OK;
+    return MPU6050_HANDLE_OK;
 }
 
-uint8_t mpu6050_reset(mpu6050_handle_t* hptr)
-{
-    uint8_t data = MPU6050_DEVICE_RESET_BIT;
-    mpu6050_write(hptr, MPU6050_REG_PWR_MGMT_1, 1, &data);
-    ASSERT_RESULT(hptr);
-    hptr->delay(100);
-
-    MPU6050_READ_CONFIG(hptr, clksel,       MPU6050_REG_PWR_MGMT_1);
-    MPU6050_READ_CONFIG(hptr, smplrt_div,   MPU6050_REG_SMPRT_DIV);
-    MPU6050_READ_CONFIG(hptr, dlpf,         MPU6050_REG_CONFIG);
-    MPU6050_READ_CONFIG(hptr, gyro_fsr,     MPU6050_REG_GYRO_CONFIG);
-    MPU6050_READ_CONFIG(hptr, accel_fsr,    MPU6050_REG_ACCEL_CONFIG);
-    MPU6050_READ_CONFIG(hptr, fifo_en,      MPU6050_REG_FIFO_EN);
-    MPU6050_READ_CONFIG(hptr, int_conf,     MPU6050_REG_INT_PIN_CFG);
-    MPU6050_READ_CONFIG(hptr, int_enable,   MPU6050_REG_INT_ENABLE);
-    MPU6050_READ_CONFIG(hptr, user_ctrl,    MPU6050_REG_USER_CTRL);
-    
-    return 0;
-}
-
-uint8_t mpu6050_configure(mpu6050_handle_t* hptr, mpu6050_conf_t* cptr)
-{
-    // calculate smplrt_div
-    if (cptr->smplrt)
-    {
-        uint16_t fs = cptr->dlpf ? 1000 : 8000;
-        cptr->smplrt_div = (uint8_t)((fs / cptr->smplrt) - 1);
-    }
-
-    MPU6050_UPDATE_CONFIG(hptr, cptr, clksel,       MPU6050_REG_PWR_MGMT_1);
-    MPU6050_UPDATE_CONFIG(hptr, cptr, smplrt_div,   MPU6050_REG_SMPRT_DIV);
-    MPU6050_UPDATE_CONFIG(hptr, cptr, dlpf,         MPU6050_REG_CONFIG);
-    MPU6050_UPDATE_CONFIG(hptr, cptr, gyro_fsr,     MPU6050_REG_GYRO_CONFIG);
-    MPU6050_UPDATE_CONFIG(hptr, cptr, accel_fsr,    MPU6050_REG_ACCEL_CONFIG);
-    MPU6050_UPDATE_CONFIG(hptr, cptr, fifo_en,      MPU6050_REG_FIFO_EN);
-    MPU6050_UPDATE_CONFIG(hptr, cptr, int_conf,     MPU6050_REG_INT_PIN_CFG);
-    MPU6050_UPDATE_CONFIG(hptr, cptr, int_enable,   MPU6050_REG_INT_ENABLE);
-    MPU6050_UPDATE_CONFIG(hptr, cptr, user_ctrl,    MPU6050_REG_USER_CTRL);
-
-    return 0;
-}
-
-mpu6050_result_t mpu6050_run_self_test(mpu6050_handle_t* hptr)
+mpu6050_self_test_result mpu6050_run_self_test(struct mpu6050_handle* hptr)
 {
     // reset
-    mpu6050_reset(hptr);
+    uint8_t err = mpu6050_reset(hptr);
+    if (err) return MPU6050_SELF_TEST_I2C_ERROR;
 
     // configure self test
-    mpu6050_conf_t conf;
-    memset(&conf, 0, sizeof(mpu6050_conf_t));
-    conf.clksel = MPU6050_CLK_GYRO_Z_BIT;
-    conf.smplrt_div = 9;
-    conf.dlpf = MPU6050_DLPF_42_HZ_BIT;
-    conf.gyro_fsr = MPU6050_GYRO_SELFTEST_BIT | MPU6050_GYRO_FSR_250_BIT;
-    conf.accel_fsr = MPU6050_ACCEL_SELFTEST_BIT | MPU6050_ACCEL_FSR_8_BIT;
-    mpu6050_configure(hptr, &conf);
+    struct mpu6050_configuration self_test_config =
+    {
+        .clksel = MPU6050_CLK_GYRO_Z_BIT,
+        .smplrt_div = 9,
+        .dlpf = MPU6050_DLPF_42_HZ_BIT,
+        .gyro_fsr = MPU6050_GYRO_SELFTEST_BIT | MPU6050_GYRO_FSR_250_BIT,
+        .accel_fsr = MPU6050_ACCEL_SELFTEST_BIT | MPU6050_ACCEL_FSR_8_BIT
+    };
+    err = mpu6050_configure(hptr, &self_test_config);
+    if (err) return MPU6050_SELF_TEST_I2C_ERROR;
+
     hptr->delay(50);
 
     // record self test value
-    mpu6050_vec3s_t gyro_selftest, accel_selftest;
-    mpu6050_read_gyro(hptr, &gyro_selftest);
-    mpu6050_read_accel(hptr, &accel_selftest);
+    float gyro_selftest[3], accel_selftest[3];
+    err |= mpu6050_read_gyro(hptr, gyro_selftest);
+    err |= mpu6050_read_accel(hptr, accel_selftest);
+    if (err) return MPU6050_SELF_TEST_I2C_ERROR;
 
     // disable self test
-    conf.gyro_fsr = MPU6050_GYRO_FSR_250_BIT;
-    conf.accel_fsr = MPU6050_ACCEL_FSR_8_BIT;
-    mpu6050_configure(hptr, &conf);
+    self_test_config.gyro_fsr = MPU6050_GYRO_FSR_250_BIT;
+    self_test_config.accel_fsr = MPU6050_ACCEL_FSR_8_BIT;
+    err = mpu6050_configure(hptr, &self_test_config);
+    if (err) return MPU6050_SELF_TEST_I2C_ERROR;
+
     hptr->delay(50);
 
     // record raw value
-    mpu6050_vec3s_t gyro_raw, accel_raw;
-    mpu6050_read_gyro(hptr, &gyro_raw);
-    mpu6050_read_accel(hptr, &accel_raw);
+    float gyro_raw[3], accel_raw[3];
+    err |= mpu6050_read_gyro(hptr, gyro_raw);
+    err |= mpu6050_read_accel(hptr, accel_raw);
+    if (err) return MPU6050_SELF_TEST_I2C_ERROR;
 
-    // calculate factory trim
-    uint8_t gyro_test[3], accel_test[3];
-    uint8_t buffer[4];
-    
+
+    // get test value
     /* |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
      * -----------------------------------------------------------------
      * |      XA_TEST[4-2]     |              XG_TEST[4-0]             |
@@ -250,13 +214,18 @@ mpu6050_result_t mpu6050_run_self_test(mpu6050_handle_t* hptr)
      * |      ZA_TEST[4-2]     |              ZG_TEST[4-0]             |
      * |   RESERVED    | XA_TEST[1-0]  | YA_TEST[1-0]  | ZA_TEST[1-0]  |
      * ----------------------------------------------------------------*/
-    mpu6050_read(hptr, MPU6050_REG_SELF_TEST_X, 4, buffer);
+    uint8_t buffer[4];
+    err = mpu6050_read(hptr, MPU6050_REG_SELF_TEST_X, 4, buffer);
+    if (err) return MPU6050_SELF_TEST_I2C_ERROR;
+
+    uint8_t gyro_test[3], accel_test[3];
     for (int i = 0; i < 3; i++) 
     {
         gyro_test[i]  =   buffer[i]       & 0x1F;
         accel_test[i] = ((buffer[i] >> 3) & 0x1C) | ((buffer[3]) >> (4 - i * 2) & 0x03);
     }
 
+    // calculate factory trim(FT)
     double gyro_ft[3], accel_ft[3];
     for (int i = 0; i < 3; i++) 
     {
@@ -264,123 +233,156 @@ mpu6050_result_t mpu6050_run_self_test(mpu6050_handle_t* hptr)
         accel_ft[i] = accel_test[i] ? (4096.0 * 0.34 * pow((0.92 / 0.34), ((accel_test[i] - 1.0) / 30.0))) : 0.0;
     }
 
-    // Self-Test Response
-    gyro_selftest.x -= gyro_raw.x;
-    gyro_selftest.y -= gyro_raw.y;
-    gyro_selftest.z -= gyro_raw.z;
-    accel_selftest.x -= accel_raw.x;
-    accel_selftest.y -= accel_raw.y;
-    accel_selftest.z -= accel_raw.z;
-    gyro_ft[0] = fabs(gyro_selftest.x / gyro_ft[0] - 1.0);
-    gyro_ft[1] = fabs(gyro_selftest.y / gyro_ft[1] - 1.0);
-    gyro_ft[2] = fabs(gyro_selftest.z / gyro_ft[2] - 1.0);
-    accel_ft[0] = fabs(accel_selftest.x / accel_ft[0] - 1.0);
-    accel_ft[1] = fabs(accel_selftest.y / accel_ft[1] - 1.0);
-    accel_ft[2] = fabs(accel_selftest.z / accel_ft[2] - 1.0);
+    // caluclate Self-Test Response
+    for (int i = 0; i < 3; i++)
+    {
+        gyro_selftest[i] -= gyro_raw[i];
+        accel_selftest[i] -= accel_raw[i];
+        gyro_ft[i] = fabs(gyro_selftest[i] / gyro_ft[i] - 1.0);
+        accel_ft[i] = fabs(accel_selftest[i] / accel_ft[i] - 1.0);
+    }
 
     // create result
-    uint8_t result = 0;
+    uint8_t result = MPU6050_SELF_TEST_PASSED;
     for (int i = 0; i < 3; i++) 
     {
         if (gyro_ft[i] > 0.14)
-            result |= MPU6050_SELF_TEST_FAIL_G;
+            result |= MPU6050_SELF_TEST_GYRO_FAILED;
         
         if (accel_ft[i] > 0.14)
-            result |= MPU6050_SELF_TEST_FAIL_A;
+            result |= MPU6050_SELF_TEST_ACCEL_FAILED;
     }
 
     return result;
 }
 
-uint8_t mpu6050_enable_bypass(mpu6050_handle_t *hptr)
+uint8_t mpu6050_reset(struct mpu6050_handle* hptr)
 {
-    uint8_t data = 0x00;
-    mpu6050_write(hptr, MPU6050_REG_USER_CTRL, 1, &data);
-    ASSERT_RESULT(hptr);
-
-    data = 0x02;
-    mpu6050_write(hptr, MPU6050_REG_INT_PIN_CFG, 1, &data);
-    ASSERT_RESULT(hptr);
-
-    return 0;
-}
-
-uint8_t mpu6050_disable_bypass(mpu6050_handle_t *hptr)
-{
-    mpu6050_write(hptr, MPU6050_REG_INT_PIN_CFG, 1, &hptr->conf.int_conf);
-    ASSERT_RESULT(hptr);
+    uint8_t data = MPU6050_DEVICE_RESET_BIT;
+    uint8_t err = mpu6050_write(hptr, MPU6050_REG_PWR_MGMT_1, 1, &data);
+    if (err) return err;
     
-    mpu6050_write(hptr, MPU6050_REG_USER_CTRL, 1, &hptr->conf.user_ctrl);
-    ASSERT_RESULT(hptr);
+    hptr->delay(100);
 
-    return 0;
+    err |= mpu6050_read(hptr, MPU6050_REG_PWR_MGMT_1, 1, &hptr->config.clksel);
+    err |= mpu6050_read(hptr, MPU6050_REG_SMPRT_DIV, 1, &hptr->config.smplrt_div);
+    err |= mpu6050_read(hptr, MPU6050_REG_CONFIG, 1, &hptr->config.dlpf);
+    err |= mpu6050_read(hptr, MPU6050_REG_GYRO_CONFIG, 1, &hptr->config.gyro_fsr);
+    err |= mpu6050_read(hptr, MPU6050_REG_ACCEL_CONFIG, 1, &hptr->config.accel_fsr);
+    err |= mpu6050_read(hptr, MPU6050_REG_FIFO_EN, 1, &hptr->config.fifo_en);
+    err |= mpu6050_read(hptr, MPU6050_REG_INT_PIN_CFG, 1, &hptr->config.int_conf);
+    err |= mpu6050_read(hptr, MPU6050_REG_INT_ENABLE, 1, &hptr->config.int_enable);
+    err |= mpu6050_read(hptr, MPU6050_REG_USER_CTRL, 1, &hptr->config.user_ctrl);
+    
+    return err;
 }
 
-uint8_t mpu6050_setup_external(mpu6050_handle_t *hptr, mpu6050_external_t external)
+uint8_t mpu6050_configure(struct mpu6050_handle* hptr, struct mpu6050_configuration* new_config)
 {
-    uint8_t data = external.addr | MPU6050_I2C_SLV0_R_MODE_BIT;
-    mpu6050_write(hptr, MPU6050_REG_I2C_SLV0_ADDR, 1, &data);
-    ASSERT_RESULT(hptr);
+    // calculate smplrt_div
+    if (new_config->smplrt)
+    {
+        uint16_t fs = new_config->dlpf ? 1000 : 8000;
+        new_config->smplrt_div = (uint8_t)((fs / new_config->smplrt) - 1);
+    }
 
-    mpu6050_write(hptr, MPU6050_REG_I2C_SLV0_REG, 1, &external.reg);
-    ASSERT_RESULT(hptr);
+    uint8_t err = 0;
+    err |= update_configuration_key(hptr, new_config, offsetof(configuration, clksel), MPU6050_REG_PWR_MGMT_1);
+    err |= update_configuration_key(hptr, new_config, offsetof(configuration, smplrt_div), MPU6050_REG_SMPRT_DIV);
+    err |= update_configuration_key(hptr, new_config, offsetof(configuration, dlpf), MPU6050_REG_CONFIG);
+    err |= update_configuration_key(hptr, new_config, offsetof(configuration, gyro_fsr), MPU6050_REG_GYRO_CONFIG);
+    err |= update_configuration_key(hptr, new_config, offsetof(configuration, accel_fsr), MPU6050_REG_ACCEL_CONFIG);
+    err |= update_configuration_key(hptr, new_config, offsetof(configuration, fifo_en), MPU6050_REG_FIFO_EN);
+    err |= update_configuration_key(hptr, new_config, offsetof(configuration, int_conf), MPU6050_REG_INT_PIN_CFG);
+    err |= update_configuration_key(hptr, new_config, offsetof(configuration, int_enable), MPU6050_REG_INT_ENABLE);
+    err |= update_configuration_key(hptr, new_config, offsetof(configuration, user_ctrl), MPU6050_REG_USER_CTRL);
 
-    data = MPU6050_I2C_SLV0_EN_BIT | external.len;
-    mpu6050_write(hptr, MPU6050_REG_I2C_SLV0_CTRL, 1, &data);
-    ASSERT_RESULT(hptr);
+    return err;
+}
 
+uint8_t mpu6050_enable_bypass(struct mpu6050_handle* hptr)
+{
+    // this process does not overwrite the handle's configuration
+    uint8_t err = 0;
+    uint8_t data = 0x00;
+    err |= mpu6050_write(hptr, MPU6050_REG_USER_CTRL, 1, &data);
+    
+    data = 0x02;
+    err |= mpu6050_write(hptr, MPU6050_REG_INT_PIN_CFG, 1, &data);
+
+    return err;
+}
+
+uint8_t mpu6050_disable_bypass(struct mpu6050_handle* hptr)
+{
+    // restore config with the handle's saved configuration
+    uint8_t err = 0;
+    err |= mpu6050_write(hptr, MPU6050_REG_INT_PIN_CFG, 1, &hptr->config.int_conf);
+    err |= mpu6050_write(hptr, MPU6050_REG_USER_CTRL, 1, &hptr->config.user_ctrl);
+    return err;
+}
+
+uint8_t mpu6050_enable_external(struct mpu6050_handle* hptr)
+{
+    uint8_t err = 0;
+
+    // write address
+    uint8_t data = hptr->config.ext_addr | MPU6050_I2C_SLV0_R_MODE_BIT;
+    err |= mpu6050_write(hptr, MPU6050_REG_I2C_SLV0_ADDR, 1, &data);
+
+    // write target reg
+    data = hptr->config.ext_reg;
+    err |= mpu6050_write(hptr, MPU6050_REG_I2C_SLV0_REG, 1, &data);
+
+    // enable slv 0
+    data = MPU6050_I2C_SLV0_EN_BIT | hptr->config.ext_len;
+    err |= mpu6050_write(hptr, MPU6050_REG_I2C_SLV0_CTRL, 1, &data);
+
+    // syncronization setting
     data = MPU6050_WAIT_FOR_ES_BIT | MPU6050_I2C_MST_CLK_400_BIT;
-    mpu6050_write(hptr, MPU6050_REG_I2C_MST_CTRL, 1, &data);
-    ASSERT_RESULT(hptr);
+    err |= mpu6050_write(hptr, MPU6050_REG_I2C_MST_CTRL, 1, &data);
 
-    MPU6050_ENABLE_I2C_MST_EN(hptr->conf.user_ctrl);
-    mpu6050_write(hptr, MPU6050_REG_USER_CTRL, 1, &hptr->conf.user_ctrl);
-    ASSERT_RESULT(hptr);
-
-    hptr->external = external;
-    return 0;
+    // enable master mode
+    mpu6050_enable_i2c_mst_en(&hptr->config);
+    err |= mpu6050_write(hptr, MPU6050_REG_USER_CTRL, 1, &hptr->config.user_ctrl);
+    
+    return err;
 }
 
-uint8_t mpu6050_read_intterrupt(mpu6050_handle_t *hptr, mpu6050_interrupt_t *out)
+uint8_t mpu6050_read_interrupt(struct mpu6050_handle* hptr, mpu6050_interrupt* int_out)
 {
-    return mpu6050_read(hptr, MPU6050_REG_INT_STATUS, 1, out);
+    return mpu6050_read(hptr, MPU6050_REG_INT_STATUS, 1, int_out);
 }
 
-uint8_t mpu6050_read_gyro(mpu6050_handle_t *hptr, mpu6050_vec3s_t *out)
+uint8_t mpu6050_read_gyro(struct mpu6050_handle* hptr, float* gyr_out)
 {
     uint8_t buffer[6];
-    mpu6050_read(hptr, MPU6050_REG_GYRO_XOUT_H, 6, buffer);
-    ASSERT_RESULT(hptr);
-    out->x = ((int16_t)buffer[0] << 8) | buffer[1];
-    out->y = ((int16_t)buffer[2] << 8) | buffer[3];
-    out->z = ((int16_t)buffer[4] << 8) | buffer[5];
+    uint8_t err = mpu6050_read(hptr, MPU6050_REG_GYRO_XOUT_H, 6, buffer);
+    if (err) return err;
+
+    float resolution = gyro_lsb_resolution(hptr->config.gyro_fsr);
+    gyr_out[0] = (float)(((int16_t)buffer[0] << 8) | buffer[1]) * resolution;
+    gyr_out[1] = (float)(((int16_t)buffer[2] << 8) | buffer[3]) * resolution;
+    gyr_out[2] = (float)(((int16_t)buffer[4] << 8) | buffer[5]) * resolution;
+
     return 0;
 }
 
-uint8_t mpu6050_read_accel(mpu6050_handle_t *hptr, mpu6050_vec3s_t *out)
+uint8_t mpu6050_read_accel(struct mpu6050_handle* hptr, float* acc_out)
 {
     uint8_t buffer[6];
-    mpu6050_read(hptr, MPU6050_REG_ACCEL_XOUT_H, 6, buffer);
-    ASSERT_RESULT(hptr);
-    out->x = ((int16_t)buffer[0] << 8) | buffer[1];
-    out->y = ((int16_t)buffer[2] << 8) | buffer[3];
-    out->z = ((int16_t)buffer[4] << 8) | buffer[5];
+    uint8_t err = mpu6050_read(hptr, MPU6050_REG_ACCEL_XOUT_H, 6, buffer);
+    if (err) return err;
+    
+    float resolution = accel_lsb_resolution(hptr->config.accel_fsr);
+    acc_out[0] = (float)(((int16_t)buffer[0] << 8) | buffer[1]) * resolution;
+    acc_out[1] = (float)(((int16_t)buffer[2] << 8) | buffer[3]) * resolution;
+    acc_out[2] = (float)(((int16_t)buffer[4] << 8) | buffer[5]) * resolution;
+    
     return 0;
 }
 
-uint8_t mpu6050_read_external(mpu6050_handle_t *hptr, uint8_t *out)
+uint8_t mpu6050_read_external(struct mpu6050_handle* hptr, uint8_t* ext_out)
 {
-    mpu6050_read(hptr, MPU6050_REG_EXT_SENS_DATA, hptr->external.len, out);
-    ASSERT_RESULT(hptr);
-    return 0;
-}
-
-float mpu6050_get_gyro_resolution(mpu6050_handle_t* hptr)
-{
-    return MPU6050_GYRO_LSB_RESOLUTION(hptr->conf.gyro_fsr);
-}
-
-float mpu6050_get_accel_resolution(mpu6050_handle_t* hptr)
-{
-    return MPU6050_ACCEL_LSB_RESOLUTION(hptr->conf.accel_fsr);
+    return mpu6050_read(hptr, MPU6050_REG_EXT_SENS_DATA, hptr->config.ext_len, ext_out);
 }

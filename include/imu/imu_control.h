@@ -7,21 +7,20 @@
 extern "C" {
 #endif
 
-typedef struct imu_raw_s
+struct dkvr_imu_readings
 {
-    vector3_t gyro_out;
-    vector3_t accel_out;
-    vector3_t mag_out;
-} imu_raw_t;
+    float gyr[3], acc[3], mag[3];
+};
 
-extern imu_raw_t imu_raw;
+extern struct dkvr_imu_readings dkvr_imu_raw;
 
-// the flag clears to 0 after the value has been read
-int is_imu_data_ready();
+// the flag clears to 0 after function call
+int dkvr_imu_is_data_ready();
 
-dkvr_err init_imu();
-dkvr_err handle_interrupt();
-dkvr_err update_imu_readings();
+dkvr_err dkvr_imu_init();
+dkvr_err dkvr_imu_read();
+dkvr_err dkvr_imu_handle_interrupt();
+const struct dkvr_hardware_specification* dkvr_imu_get_spec();
 
 #ifdef __cplusplus
 }

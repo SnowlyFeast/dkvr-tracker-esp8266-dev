@@ -5,73 +5,60 @@
 #include "common/gpio_interface.h"
 #include "common/system_interface.h"
 
-#define LED_SLOWEST_CYCLE_PERIOD    3000
-#define LED_SLOWEST_ACTIVE_TIME     1500
-#define LED_SLOWEST_REPEAT          1
-#define LED_SLOWEST_DELAY           0
-
-#define LED_NORMAL_CYCLE_PERIOD     2000
-#define LED_NORMAL_ACTIVE_TIME      1000
-#define LED_NORMAL_REPEAT           1
-#define LED_NORMAL_DELAY            0
-
-#define LED_FASTEST_CYCLE_PERIOD    500
-#define LED_FASTEST_ACTIVE_TIME     250
-#define LED_FASTEST_REPEAT          1
-#define LED_FASTEST_DELAY           0
-
-#define LED_DOUBLETAB_CYCLE_PERIOD  250
-#define LED_DOUBLETAB_ACTIVE_TIME   125
-#define LED_DOUBLETAB_REPEAT        2
-#define LED_DOUBLETAB_DELAY         500
-
-#define LED_TRIPLETAB_CYCLE_PERIOD  200
-#define LED_TRIPLETAB_ACTIVE_TIME   100
-#define LED_TRIPLETAB_REPEAT        3
-#define LED_TRIPLETAB_DELAY         400
-
 #define LED_LOCATE_DURATION         2900UL
 #define LED_LOW_BATTERY_DURATION    950UL
 
-static led_mode_t current_mode = LED_MODE_MANUAL;
-static int current_led_on = 0;
+struct led_signal_pattern
+{
+    uint16_t cycle_period;
+    uint16_t active_time;
+    uint16_t repeat;
+    uint16_t delay;
+};
 
+static const struct led_signal_pattern pattern_slow PROGMEM = {3000, 1500, 1, 0};
+static const struct led_signal_pattern pattern_norm PROGMEM = {1500, 750, 1, 0};
+static const struct led_signal_pattern pattern_fast PROGMEM = {500, 250, 1, 0};
+static const struct led_signal_pattern pattern_2tap PROGMEM = {250, 125, 2, 500};
+static const struct led_signal_pattern pattern_3tap PROGMEM = {200, 100, 3, 400};
+
+static dkvr_led_mode led_mode = DKVR_LED_MODE_MANUAL;
+static int led_on = 0;
+
+static struct led_signal_pattern pattern;
 static uint32_t cycle_begin = 0;
-static uint16_t cycle_period = 0;
-static uint16_t active_time = 0;
-static uint16_t repeat = 0;
-static uint16_t delay = 0;
 
 static int interrupt_enabled = 0;
-static uint32_t interrupt_begin = 0;
-static uint32_t interrupt_duration = 0;
-static led_mode_t memory_mode = LED_MODE_MANUAL;
+static uint32_t interrupt_end = 0;
+static dkvr_led_mode memory_led_mode = DKVR_LED_MODE_MANUAL;
 static int memory_led_on = 0;
 
-static void enable_interrupt(led_mode_t mode, uint32_t duration);
-static void disable_interrupt();
+static void set_interrupt(dkvr_led_mode mode, uint32_t duration);
+static void clear_interrupt();
 
-led_mode_t get_led_mode()
+
+dkvr_led_mode dkvr_led_get_mode()
 {
-    return current_mode;
+    return led_mode;
 }
 
-void turn_on_led()
+void dkvr_led_on()
 {
-    if (current_led_on)
+    if (led_on)
         return;
+
 #ifdef DKVR_HARDWARE_LED_CATHODE_TO_GND
     dkvr_gpio_write(DKVR_HARDWARE_LED_GPIO_NUM, DKVR_HIGH);
 #else
     // internal LED's anode is connected to 3.3V and cathode is connected to GPIO
     dkvr_gpio_write(DKVR_HARDWARE_LED_GPIO_NUM, DKVR_LOW);
 #endif
-    current_led_on = 1;
+    led_on = 1;
 }
 
-void turn_off_led()
+void dkvr_led_off()
 {
-    if (!current_led_on)
+    if (!led_on)
         return;
 
 #ifdef DKVR_HARDWARE_LED_CATHODE_TO_GND
@@ -80,143 +67,122 @@ void turn_off_led()
     // internal LED's anode is connected to 3.3V and cathode is connected to GPIO
     dkvr_gpio_write(DKVR_HARDWARE_LED_GPIO_NUM, DKVR_HIGH);
 #endif
-    current_led_on = 0;
+    led_on = 0;
 }
 
-void set_led_mode(led_mode_t mode)
+void dkvr_led_set_mode(dkvr_led_mode mode)
 {
+    // save to memory if interrupt is ongoing
     if (interrupt_enabled)
     {
-        memory_mode = mode;
+        memory_led_mode = mode;
         return;
     }
 
-    if (current_mode == mode)
+    // same mode
+    if (led_mode == mode)
         return;
 
     switch (mode)
     {
     default:
-    case LED_MODE_MANUAL:
+    case DKVR_LED_MODE_MANUAL:
         break;
 
-    case LED_MODE_SLOWEST:
-        cycle_period = LED_SLOWEST_CYCLE_PERIOD;
-        active_time = LED_SLOWEST_ACTIVE_TIME;
-        repeat = LED_SLOWEST_REPEAT;
-        delay = LED_SLOWEST_DELAY;
+    case DKVR_LED_MODE_SLOWEST:
+        memcpy_P(&pattern, &pattern_slow, sizeof(struct led_signal_pattern));
         break;
-
-    case LED_MODE_NORMAL:
-        cycle_period = LED_NORMAL_CYCLE_PERIOD;
-        active_time = LED_NORMAL_ACTIVE_TIME;
-        repeat = LED_NORMAL_REPEAT;
-        delay = LED_NORMAL_DELAY;
+        
+    case DKVR_LED_MODE_NORMAL:
+        memcpy_P(&pattern, &pattern_norm, sizeof(struct led_signal_pattern));
         break;
-
-    case LED_MODE_FASTEST:
-        cycle_period = LED_FASTEST_CYCLE_PERIOD;
-        active_time = LED_FASTEST_ACTIVE_TIME;
-        repeat = LED_FASTEST_REPEAT;
-        delay = LED_FASTEST_DELAY;
+        
+    case DKVR_LED_MODE_FASTEST:
+        memcpy_P(&pattern, &pattern_fast, sizeof(struct led_signal_pattern));
         break;
-
-    case LED_MODE_DOUBLE_TAB:
-        cycle_period = LED_DOUBLETAB_CYCLE_PERIOD;
-        active_time = LED_DOUBLETAB_ACTIVE_TIME;
-        repeat = LED_DOUBLETAB_REPEAT;
-        delay = LED_DOUBLETAB_DELAY;
+        
+    case DKVR_LED_MODE_DOUBLE_TAP:
+        memcpy_P(&pattern, &pattern_2tap, sizeof(struct led_signal_pattern));
         break;
-
-    case LED_MODE_TRIPLE_TAB:
-        cycle_period = LED_TRIPLETAB_CYCLE_PERIOD;
-        active_time = LED_TRIPLETAB_ACTIVE_TIME;
-        repeat = LED_TRIPLETAB_REPEAT;
-        delay = LED_TRIPLETAB_DELAY;
+        
+    case DKVR_LED_MODE_TRIPLE_TAP:
+        memcpy_P(&pattern, &pattern_3tap, sizeof(struct led_signal_pattern));
         break;
     }
 
-    current_mode = mode;
+    led_mode = mode;
     cycle_begin = dkvr_get_time();
 }
 
-void interrupt_led_for_locate()
+void dkvr_led_interrupt_for_locate()
 {
     if (!interrupt_enabled)
-    {
-        enable_interrupt(LED_MODE_DOUBLE_TAB, LED_LOCATE_DURATION);
-    }
+        set_interrupt(DKVR_LED_MODE_DOUBLE_TAP, LED_LOCATE_DURATION);
 }
 
-void interrupt_led_for_low_battery()
+void dkvr_led_interrupt_for_low_battery()
 {
     if (!interrupt_enabled)
-    {
-        enable_interrupt(LED_MODE_TRIPLE_TAB, LED_LOW_BATTERY_DURATION);
-    }
+        set_interrupt(DKVR_LED_MODE_TRIPLE_TAP, LED_LOW_BATTERY_DURATION);
 }
 
-void update_led()
+void dkvr_led_update()
 {
-    if (interrupt_enabled)
-    {
-        if (dkvr_get_time() > (interrupt_begin + interrupt_duration))
-        {
-            disable_interrupt();
-        }
-    }
-    
-    if (current_mode == LED_MODE_MANUAL)
+    uint32_t now = dkvr_get_time();
+
+    // check interrupt state
+    if (interrupt_enabled && (now >= interrupt_end))
+        clear_interrupt();
+
+    // nothing to update on manual mode
+    if (led_mode == DKVR_LED_MODE_MANUAL)
         return;
 
-    uint32_t elapsed = dkvr_get_time() - cycle_begin;
-
-    for (int i = 0; i < repeat; i++)
+    // calculate timetick position
+    uint32_t elapsed = now - cycle_begin;
+    for (int i = 0; i < pattern.repeat; i++)
     {
-        if (elapsed < cycle_period)
+        if (elapsed < pattern.cycle_period)
         {
-            // timetick on cycle period
-            elapsed < active_time ? turn_on_led() : turn_off_led();
+            // timetick is on cycle preriod
+            (elapsed < pattern.active_time) ? dkvr_led_on() : dkvr_led_off();
             return;
         }
         else
         {
-            // next cycle
-            elapsed -= cycle_period;
+            // timetick has passed the cycle
+            elapsed -= pattern.cycle_period;
         }
     }
 
-    if (elapsed < delay)
+    if (elapsed < pattern.delay)
     {
-        // timetick on delay period
-        turn_off_led();
+        // timetick is on delay period
+        dkvr_led_off();
         return;
     }
     else
     {
-        // full-cycle ended
-        elapsed -= delay;
+        // full pattern ended, start new pattern
+        elapsed -= pattern.delay;
         cycle_begin = dkvr_get_time() - elapsed;
-        elapsed < active_time ? turn_on_led() : turn_off_led();
+        (elapsed < pattern.active_time) ? dkvr_led_on() : dkvr_led_off();
     }
 }
 
-static void enable_interrupt(led_mode_t mode, uint32_t duration)
+static void set_interrupt(dkvr_led_mode mode, uint32_t duration)
 {
-    memory_mode = current_mode;
-    memory_led_on = current_led_on;
-    set_led_mode(mode);
+    memory_led_mode = led_mode;
+    memory_led_on = led_on;
+    dkvr_led_set_mode(mode);
     interrupt_enabled = 1;
-    interrupt_begin = dkvr_get_time();
-    interrupt_duration = duration;
+    interrupt_end = dkvr_get_time() + duration;
 }
 
-static void disable_interrupt()
+static void clear_interrupt()
 {
     interrupt_enabled = 0;
-    set_led_mode(memory_mode);
-    if (current_mode == LED_MODE_MANUAL)
-    {
-        memory_led_on ? turn_on_led() : turn_off_led();
-    }
+    dkvr_led_set_mode(memory_led_mode);
+    if (led_mode == DKVR_LED_MODE_MANUAL)
+        memory_led_on ? dkvr_led_on() : dkvr_led_off();
 }

@@ -11,16 +11,16 @@ extern "C" {
 #define HMC5883L_DATA_LENGTH        6       // Data Length
 
 // number of samples averaged
-typedef enum hmc5883l_ma_e
+typedef enum
 {
     HMC5883L_MA_1           = 0x00,
     HMC5883L_MA_2           = 0x20,
     HMC5883L_MA_4           = 0x40,
     HMC5883L_MA_8           = 0x60
-} hmc5883l_ma_t;
+} hmc5883l_ma;
 
 // data output rate (sampling rate?)
-typedef enum hmc5883l_do_e
+typedef enum
 {
     HMC5883L_DO_P75HZ       = 0x00,
     HMC5883L_DO_1P5HZ       = 0x04,
@@ -29,18 +29,18 @@ typedef enum hmc5883l_do_e
     HMC5883L_DO_15HZ        = 0x10,
     HMC5883L_DO_30HZ        = 0x14,
     HMC5883L_DO_75HZ        = 0x18
-} hmc5883l_do_t;
+} hmc5883l_do;
 
 // measurment configuration
-typedef enum hmc5883l_ms_e
+typedef enum
 {
     HMC5883L_MS_NORMAL      = 0x00,
     HMC5883L_MS_POS_BIAS    = 0x01,
     HMC5883L_MS_NEG_BIAS    = 0x02
-} hmc5883l_ms_t;
+} hmc5883l_ms;
 
 // gain (resolution)
-typedef enum hmc5883l_gn_e
+typedef enum
 {
     HMC5883L_GN_1370        = 0x00, // FSR: ± 1.5 G, Recommend < 0.88 G
     HMC5883L_GN_1090        = 0x20, // FSR: ± 1.8 G, Recommend <  1.3 G
@@ -50,95 +50,62 @@ typedef enum hmc5883l_gn_e
     HMC5883L_GN_390         = 0xA0, // FSR: ± 5.2 G, Recommend <  4.7 G
     HMC5883L_GN_330         = 0xC0, // FSR: ± 6.2 G, Recommend <  5.6 G
     HMC5883L_GN_230         = 0xE0  // FSR: ± 8.9 G, Recommend <  8.1 G
-} hmc5883l_gn_t;
-
-// LSB resolution (G/LSB)
-#define HMC5883L_LSB_RESOLUTION(x)      \
-(  (x) == HMC5883L_GN_1370  ? 7.299e-4f \
- : (x) == HMC5883L_GN_1090  ? 9.174e-4f \
- : (x) == HMC5883L_GN_820   ? 1.220e-3f \
- : (x) == HMC5883L_GN_660   ? 1.515e-3f \
- : (x) == HMC5883L_GN_440   ? 2.273e-3f \
- : (x) == HMC5883L_GN_390   ? 2.564e-3f \
- : (x) == HMC5883L_GN_330   ? 3.030e-3f \
-                            : 4.348e-3f)
-
-// high speed i2c (400kHz)
-typedef enum hmc5883l_hs_e
-{
-    HMC5883L_HS_ENABLE      = 0x80,
-    HMC5883L_HS_DISABLE     = 0x00
-} hmc5883l_hs_t;
+} hmc5883l_gn;
 
 // operating mode
-typedef enum hmc5883l_md_e
+typedef enum
 {
     HMC5883L_MD_CONTINUOUS  = 0x00,
     HMC5883L_MD_SINGLE      = 0x01,
     HMC5883L_MD_IDLE        = 0x02
-} hmc5883l_md_t;
+} hmc5883l_md;
 
-typedef struct hmc5883l_conf_s
+// configuration struct
+struct hmc5883l_configuration
 {
     uint8_t config_a;
     uint8_t config_b;
     uint8_t mode;
-} __attribute__((aligned(4))) hmc5883l_conf_t;
+} __attribute__((aligned(4)));
 
-typedef struct hmc5883l_vec3s_s
+// handle test result
+typedef enum
 {
-    int16_t x, y, z;
-} __attribute__((aligned(4))) hmc5883l_vec3s_t;
+    HMC5883L_HANDLE_OK               = 0x00,
+    HMC5883L_HANDLE_MISSING_CALLBACK = 0x01,
+    HMC5883L_HANDLE_I2C_READ_FAILED  = 0x02,
+    HMC5883L_HANDLE_I2C_WRITE_FAILED = 0x03
+} hmc5883l_handle_test_result;
 
-typedef enum hmc5883l_result_e
-{
-    HMC5883L_OK                 = 0x00,
-    HMC5883L_MISSING_I2C_R_CB   = 0x01,
-    HMC5883L_MISSING_I2C_W_CB   = 0x02,
-    HMC5883L_MISSING_DELAY_CB   = 0x04,
-    HMC5883L_I2C_RW_FAIL        = 0x10
-} hmc5883l_result_t;
-
-// handle
+// callback
 typedef uint8_t (*hmc5883l_i2c_read_callback)   (uint8_t addr, uint8_t reg, uint8_t len, uint8_t* buffer, uint32_t timeout);
 typedef uint8_t (*hmc5883l_i2c_write_callback)  (uint8_t addr, uint8_t reg, uint8_t len, const uint8_t* buffer, uint32_t timeout);
 typedef void    (*hmc5883l_delay_callback)      (uint32_t milli);
 
-typedef struct hmc5883l_handle_s
+// handle struct
+struct hmc5883l_handle
 {
     hmc5883l_i2c_read_callback i2c_read;
     hmc5883l_i2c_write_callback i2c_write;
     hmc5883l_delay_callback delay;
-    hmc5883l_conf_t conf;
-    uint8_t i2c_result;
-} __attribute__((aligned(4))) hmc5883l_handle_t;
+    struct hmc5883l_configuration config;
+} __attribute__((aligned(4)));
 
-// FIXME: Change those FUCKING retarded function names
-// set number of samples averaged
-void hmc5883l_set_ma(hmc5883l_conf_t* cptr, hmc5883l_ma_t ma);  
-// set data output rate
-void hmc5883l_set_do(hmc5883l_conf_t* cptr, hmc5883l_do_t dor);
-// set measurement mode
-void hmc5883l_set_ms(hmc5883l_conf_t* cptr, hmc5883l_ms_t ms);
-// set gain
-void hmc5883l_set_gn(hmc5883l_conf_t* cptr, hmc5883l_gn_t gn);
-// set high speed i2c
-void hmc5883l_set_hs(hmc5883l_conf_t* cptr, hmc5883l_hs_t hs);
-// set operating mode
-void hmc5883l_set_md(hmc5883l_conf_t* cptr, hmc5883l_md_t md);
 
-void hmc5883l_attach_i2c_read(hmc5883l_handle_t* hptr, hmc5883l_i2c_read_callback callback);
-void hmc5883l_attach_i2c_write(hmc5883l_handle_t* hptr, hmc5883l_i2c_write_callback callback);
-void hmc5883l_attach_delay(hmc5883l_handle_t* hptr, hmc5883l_delay_callback callback);
-hmc5883l_result_t hmc5883l_assert_handle(hmc5883l_handle_t* hptr);
+void hmc5883l_set_measurement_averaged(struct hmc5883l_configuration* config, hmc5883l_ma ma);
+void hmc5883l_set_data_output_rate(struct hmc5883l_configuration* config, hmc5883l_do dor);
+void hmc5883l_set_measurement_configuration(struct hmc5883l_configuration* config, hmc5883l_ms ms);
+void hmc5883l_set_gain(struct hmc5883l_configuration* config, hmc5883l_gn gain);
+void hmc5883l_set_high_speed_i2c(struct hmc5883l_configuration* config, int enable);
+void hmc5883l_set_operating_mode(struct hmc5883l_configuration* config, hmc5883l_md mode);
 
-uint8_t hmc5883l_configure(hmc5883l_handle_t* hptr, const hmc5883l_conf_t new_conf);
-uint8_t hmc5883l_take_single_measure(hmc5883l_handle_t* hptr);
+hmc5883l_handle_test_result hmc5883l_test_handle(struct hmc5883l_handle* hptr);
 
-uint8_t hmc5883l_read_mag(hmc5883l_handle_t* hptr, hmc5883l_vec3s_t* out);
-uint8_t hmc5883l_read_mag_from(hmc5883l_handle_t* hptr, hmc5883l_vec3s_t* out, uint64_t from);
+uint8_t hmc5883l_configure(struct hmc5883l_handle* hptr, const struct hmc5883l_configuration new_config);
+uint8_t hmc5883l_take_single_measurement(struct hmc5883l_handle* hptr);
 
-float hmc5883l_get_mag_resolution(hmc5883l_handle_t* hptr);
+uint8_t hmc5883l_read_mag(struct hmc5883l_handle* hptr, float* mag_out);
+void hmc5883l_convert_mag_from_external(struct hmc5883l_handle* hptr, uint8_t* ext_read, float* mag_out);
 
 #ifdef __cplusplus
 }

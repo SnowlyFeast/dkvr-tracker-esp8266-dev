@@ -10,15 +10,16 @@
 #include "common/wifi_interface.h"
 
 #include "tracker/tracker_main.h"
-#include "tracker/tracker_status.h"
 
 #define SERIAL_SPEED        115200
 
+
 static void init_framework();
+
 
 void IRAM_ATTR interrupt_callback()
 {
-    gpio_interrupt = 1;
+    tracker_main_set_gpio_interrupted();
 }
 
 void setup()
@@ -29,22 +30,23 @@ void setup()
     pinMode(DKVR_HARDWARE_LED_GPIO_NUM, OUTPUT);
 
     init_framework();
-    init_tracker();
+    tracker_main_init();
 
-    if (get_tracker_init_result() == DKVR_OK)
+    if (tracker_main_init())
     {
-        attachInterrupt(digitalPinToInterrupt(DKVR_HARDWARE_INT_GPIO_NUM), interrupt_callback, RISING);
+        PRINTLN("Tracker initialization failed.");
     }
     else
     {
-        PRINTLN("Tracker init failed. It will not work properly.");
+        attachInterrupt(digitalPinToInterrupt(DKVR_HARDWARE_INT_GPIO_NUM), interrupt_callback, RISING);
     }
 }
 
 void loop()
 {
-    update_tracker();
+    tracker_main_update();
 }
+
 
 static void init_framework()
 {

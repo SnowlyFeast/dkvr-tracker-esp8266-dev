@@ -3,13 +3,13 @@
 #include <stdint.h>
 
 #include "common/dkvr_const.h"
+#include "common/dkvr_types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-dkvr_err dkvr_adc_init();
-uint16_t dkvr_adc_read();
+void tracker_instruction_handler(uint8_t opcode, union dkvr_byte_pack* payload);
 
 #ifdef __cplusplus
 }
