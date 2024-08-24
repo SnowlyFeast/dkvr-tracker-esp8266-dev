@@ -42,16 +42,20 @@ dkvr_led_mode dkvr_led_get_mode()
     return led_mode;
 }
 
+void dkvr_led_init()
+{
+    dkvr_gpio_mode(DKVR_HARDWARE_LED_GPIO_NUM, DKVR_GPIO_MODE_OUTPUT);
+}
+
 void dkvr_led_on()
 {
     if (led_on)
         return;
 
-#ifdef DKVR_HARDWARE_LED_CATHODE_TO_GND
-    dkvr_gpio_write(DKVR_HARDWARE_LED_GPIO_NUM, DKVR_HIGH);
-#else
-    // internal LED's anode is connected to 3.3V and cathode is connected to GPIO
+#ifdef DKVR_HARDWARE_LED_ACTIVE_LOW
     dkvr_gpio_write(DKVR_HARDWARE_LED_GPIO_NUM, DKVR_LOW);
+#else
+    dkvr_gpio_write(DKVR_HARDWARE_LED_GPIO_NUM, DKVR_HIGH);
 #endif
     led_on = 1;
 }
@@ -61,11 +65,10 @@ void dkvr_led_off()
     if (!led_on)
         return;
 
-#ifdef DKVR_HARDWARE_LED_CATHODE_TO_GND
-    dkvr_gpio_write(DKVR_HARDWARE_LED_GPIO_NUM, DKVR_LOW);
-#else
-    // internal LED's anode is connected to 3.3V and cathode is connected to GPIO
+#ifdef DKVR_HARDWARE_LED_ACTIVE_LOW
     dkvr_gpio_write(DKVR_HARDWARE_LED_GPIO_NUM, DKVR_HIGH);
+#else
+    dkvr_gpio_write(DKVR_HARDWARE_LED_GPIO_NUM, DKVR_LOW);
 #endif
     led_on = 0;
 }

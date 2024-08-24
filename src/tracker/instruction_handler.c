@@ -18,8 +18,8 @@ void tracker_instruction_handler(uint8_t opcode, union dkvr_byte_pack* payload)
         dkvr_led_interrupt_for_locate();
         break;
 
-    case DKVR_OPCODE_CLIENTNAME:
-        dkvr_client_send_instruction(DKVR_OPCODE_CLIENTNAME, sizeof(DKVR_CLIENT_NAME), 1, DKVR_CLIENT_NAME);
+    case DKVR_OPCODE_CLIENT_NAME:
+        dkvr_client_send_instruction(DKVR_OPCODE_CLIENT_NAME, sizeof(DKVR_CLIENT_NAME), 1, DKVR_CLIENT_NAME);
         break;
 
     // configuration
@@ -47,11 +47,6 @@ void tracker_instruction_handler(uint8_t opcode, union dkvr_byte_pack* payload)
     case DKVR_OPCODE_NOISE_VARIANCE:
         tracker_calibration_set_noise_variance((const float*)payload);
         dkvr_client_send_instruction(DKVR_OPCODE_NOISE_VARIANCE, 0, 0, NULL); // ACK
-        break;
-
-    case DKVR_OPCODE_MAG_REFERENCE:
-        tracker_calibration_set_mag_reference((const float*)payload);
-        dkvr_client_send_instruction(DKVR_OPCODE_MAG_REFERENCE, 0, 0, NULL); // ACK
         break;
 
 

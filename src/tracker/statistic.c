@@ -54,9 +54,9 @@ void tracker_statistic_record_imu_miss()
     uint32_t timespan = now - last_record;
     last_record = now;
 
-    accumulate(&mwa_interrupt_miss, timespan);
+    accumulate(&mwa_imu_miss, timespan);
     
-    uint32_t miss_rate = DKVR_IMU_SAMPLING_RATE * BUFFER_SIZE * 100 / mwa_interrupt_miss.accumulator;
+    uint32_t miss_rate = DKVR_IMU_SAMPLING_RATE * BUFFER_SIZE * 100 / mwa_imu_miss.accumulator;
     tracker_statistic.interrupt_miss_rate = (uint8_t)miss_rate;
 }
 

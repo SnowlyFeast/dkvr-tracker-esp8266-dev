@@ -306,9 +306,67 @@
 #undef VEC_SIGN
 #undef VEC_CROSS
 
+/* ------------------------- IMU factory calibration ------------------------ */
+
+#define THIRTEEN_TH_ARG(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, ...)    a13
+#define COUNT_ARGUMENTS(...) THIRTEEN_TH_ARG(__VA_ARGS__, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
+
+#ifdef DKVR_IMU_FACTORY_CALIBRATION_GYRO
+#   if COUNT_ARGUMENTS(DKVR_IMU_FACTORY_CALIBRATION_GYRO) != 12
+#       error Invalid factory calibration gyro transform matrix
+#   endif
+#else
+#   define DKVR_IMU_FACTORY_CALIBRATION_GYRO        1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, \
+                                                    0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f
+#endif
+
+#ifdef DKVR_IMU_FACTORY_CALIBRATION_ACCEL
+#   if COUNT_ARGUMENTS(DKVR_IMU_FACTORY_CALIBRATION_ACCEL) != 12
+#       error Invalid factory calibration accel transform matrix
+#   endif
+#else
+#   define DKVR_IMU_FACTORY_CALIBRATION_ACCEL       1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, \
+                                                    0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f
+#endif
+
+#ifdef DKVR_IMU_FACTORY_CALIBRATION_MAG
+#   if COUNT_ARGUMENTS(DKVR_IMU_FACTORY_CALIBRATION_MAG) != 12
+#       error Invalid factory calibration mag transform matrix
+#   endif
+#else
+#   define DKVR_IMU_FACTORY_CALIBRATION_MAG         1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, \
+                                                    0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f
+#endif
+
+#ifdef DKVR_IMU_FACTORY_CALIBRATION_NOISE_VAR
+#   if COUNT_ARGUMENTS(DKVR_IMU_FACTORY_CALIBRATION_NOISE_VAR) != 9
+#       error Invalid factory calibration noise variance
+#   endif
+#endif
+
 /* ------------------------- debug logger implement ------------------------- */
 #ifdef DKVR_DEBUG_ENABLE
+#   define DKVR_SYSTEM_ENABLE_SERIAL
 #   include "common/system_interface.h"
+
+#   ifdef __cplusplus
+        class SerialPrintWrapper
+        {
+        public:
+            static inline void GenericSerialPrint(const char* str) { dkvr_serial_print_str(str); }
+            static inline void GenericSerialPrint(float f)         { dkvr_serial_print_float(f); }
+        };
+#       define SERIAL_PRINT(msg)        SerialPrintWrapper::GenericSerialPrint(msg)
+#   else
+#       define dkvr_serial_print(arg)   _Generic((arg),                             \
+                                            char *: dkvr_serial_print_str,          \
+                                            const char *: dkvr_serial_print_str,    \
+                                            float: dkvr_serial_print_float,         \
+                                            default: dkvr_serial_print_str)(arg)
+#       define SERIAL_PRINT(msg)        dkvr_serial_print(msg)
+#   endif
+#   define SERIAL_PRINT_HEX(val)        dkvr_serial_print_hex(val)
+
 
 #   define EVAL(...)                    __VA_ARGS__
 #   define VARCOUNT(...)                EVAL(VARCOUNT_I(__VA_ARGS__, 9, 8, 7, 6, 5, 4, 3, 2, 1, ))
@@ -338,17 +396,6 @@
 #   define TEST_PAREN(x)                TEST_PAREN_I(x)
 #   define TEST_PAREN_I(x)              IS_PAREN(x)
 
-#   define LOWER_NIBBLE(val)            (val & 0x0F)
-#   define UPPER_NIBBLE(val)            ((val >> 4) & 0x0F)
-#   define NIBBLE_TO_CHAR(val)          (val < 0x0Au ? ('0' + val) : ('A' + val - 10))
-#   if defined(__BYTE_ORDER__)&&(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
-#      define BYTE_TO_STR(val)          \
-        (uint32_t)((NIBBLE_TO_CHAR(LOWER_NIBBLE(val)) << 8) | NIBBLE_TO_CHAR(UPPER_NIBBLE(val)))
-#   else
-#      define BYTE_TO_STR(val)          \
-        (uint32_t)((NIBBLE_TO_CHAR(UPPER_NIBBLE(val)) << 24) | (NIBBLE_TO_CHAR(LOWER_NIBBLE(val)) << 16))
-#   endif
-
 #   define SERIAL_PRINT_1(x)            SERIAL_PRINT_1_I(x)
 #   define SERIAL_PRINT_1_I(x)          SERIAL_PRINT_HEX(x)
 #   define SERIAL_PRINT_0(x)            SERIAL_PRINT_0_I(x)
@@ -356,18 +403,9 @@
 #   define TEST_HEX_AND_FORWARD(x)      TEST_HEX_AND_FORWARD_I(x)
 #   define TEST_HEX_AND_FORWARD_I(x)    GLUE(SERIAL_PRINT_, TEST_PAREN(x))(x)
 
-#   define SERIAL_PRINT(msg)            dkvr_serial_print(msg)
-#   define SERIAL_PRINT_HEX(val)               \
-        do                                     \
-        {                                      \
-            uint32_t temp = BYTE_TO_STR(val);  \
-            ((uint8_t *)&temp)[2] = '\0';      \
-            SERIAL_PRINT((const char *)&temp); \
-        } while (0)
-
 #   define PRINT(...)                   TRANSFORM(TEST_HEX_AND_FORWARD, (__VA_ARGS__))
-#   define PRINTLN(...)                 PRINT(__VA_ARGS__, "\r\n")
-#   define ENDL()                       PRINT("\r\n")
+#   define PRINTLN(...)                 PRINT(__VA_ARGS__); ENDL()
+#   define ENDL()                       dkvr_serial_print_ln()
 #else
 #   define PRINT(...)
 #   define PRINTLN(...)

@@ -34,7 +34,6 @@ extern struct eskf_nominal_state eskf_nominal;
 extern struct eskf_error_state eskf_error;
 
 void eskf_configure(const struct eskf_configuration *config);
-void eskf_set_magnetic_reference(const float* new_mag_ref);
 
 void eskf_init(const float* acc_read, const float* mag_read);
 void eskf_update(const float* gyr_read, const float* acc_read, const float* mag_read);

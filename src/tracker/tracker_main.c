@@ -39,56 +39,60 @@ void IRAM_ATTR tracker_main_set_gpio_interrupted()
 
 int tracker_main_init()
 {
+    // init miscellaneous things
+    dkvr_led_init();
+    dkvr_led_off();
+    dkvr_led_on();
+    tracker_behavior_reset();
+    tracker_calibration_reset();
+
     // init DKVR client
     dkvr_err net_err = dkvr_client_init(tracker_instruction_handler);
     if (net_err != DKVR_OK) 
     {
         // actually never gonna happen as dkvr_client_init()
-        // always returns DKVR_OK but maybe someday
+        // always returns DKVR_OK.. but maybe someday?
         tracker_status_set_init_result(net_err);
         PRINTLN("DKVR client init failed with code 0x", (net_err));
     }
 
     // init IMU
     dkvr_err imu_err = dkvr_imu_init();
-    if (imu_err != DKVR_OK)
+    if (imu_err == DKVR_OK)
+    {
+        // configure filter
+        eskf_config.time_step = DKVR_IMU_SAMPLING_PERIOD;
+        tracker_calibration_get_noise_variance(eskf_config.noise_gyro,
+                                               eskf_config.noise_accel,
+                                               eskf_config.noise_mag);
+        eskf_config.uncertainty_linear_accel = DKVR_ESKF_UNCERTAIN_ACC;
+        eskf_config.uncertainty_magnetic_dist = DKVR_ESKF_UNCERTAIN_MAG;
+        eskf_config.lpf_cutoff_linear_accel = DKVR_ESKF_LPF_CUTOFF_ACC;
+        eskf_config.lpf_cutoff_magnetic_dist = DKVR_ESKF_LPF_CUTOFF_MAG;
+        eskf_configure(&eskf_config);
+
+        // some delay for stable IMU read
+        dkvr_delay(200);
+
+        // wait for initial sensor readings
+        while (1)
+        {
+            dkvr_delay(50);
+            if (dkvr_imu_handle_interrupt() != DKVR_OK) continue;   // interrupt reading failed
+            if (!dkvr_imu_is_data_ready()) continue;                // IMU data is not ready
+            if (dkvr_imu_read() != DKVR_OK) continue;               // imu reading failed
+
+            tracker_calibration_transform(dkvr_imu_raw.gyr, dkvr_imu_raw.acc, dkvr_imu_raw.mag);
+            eskf_init(dkvr_imu_raw.acc, dkvr_imu_raw.mag);
+            break;
+        }
+    }
+    else
     {
         // overwrite the init result as imu error is more important
         tracker_status_set_init_result(imu_err);
         tracker_logger_push(imu_err, PSTR("IMU initialization code : 0x"));
         PRINTLN("IMU init failed with code 0x", (imu_err));
-    }
-    
-    // init miscellaneous
-    dkvr_led_off();
-    dkvr_led_on();
-    tracker_behavior_reset();
-    tracker_calibration_reset();
-
-    // some delay for stable IMU read
-    dkvr_delay(200);
-
-    // configure filter
-    eskf_config.time_step = DKVR_IMU_SAMPLING_PERIOD;
-    memcpy(eskf_config.noise_gyro,  dkvr_imu_get_spec()->noise_variance_gyr, sizeof(eskf_config.noise_gyro));
-    memcpy(eskf_config.noise_accel, dkvr_imu_get_spec()->noise_variance_acc, sizeof(eskf_config.noise_accel));
-    memcpy(eskf_config.noise_mag,   dkvr_imu_get_spec()->noise_variance_mag, sizeof(eskf_config.noise_mag));
-    eskf_config.uncertainty_linear_accel = DKVR_ESKF_UNCERTAIN_ACC;
-    eskf_config.uncertainty_magnetic_dist = DKVR_ESKF_UNCERTAIN_MAG;
-    eskf_config.lpf_cutoff_linear_accel = DKVR_ESKF_LPF_CUTOFF_ACC;
-    eskf_config.lpf_cutoff_magnetic_dist = DKVR_ESKF_LPF_CUTOFF_MAG;
-    eskf_configure(&eskf_config);
-
-    while(1)
-    {
-        dkvr_delay(50);
-        if (dkvr_imu_handle_interrupt() != DKVR_OK) continue;
-        if (dkvr_imu_is_data_ready() != DKVR_OK) continue;
-        if (dkvr_imu_read() != DKVR_OK) continue;
-        if (dkvr_imu_raw.acc[0] == 0.0f || dkvr_imu_raw.mag[0] == 0.0f) continue;
-        
-        eskf_init(dkvr_imu_raw.acc, dkvr_imu_raw.mag);
-        break;
     }
 
     return (imu_err != DKVR_OK) || (net_err != DKVR_OK);
@@ -128,7 +132,7 @@ void tracker_main_update()
     apply_new_configuration();
     tracker_status_update();
     update_led();
-    tracker_statistic_record_execution_time();
+    tracker_statistic_record_execution_time();  // always at the last
 }
 
 static void read_imu()
@@ -211,7 +215,7 @@ static void report_error()
             DKVR_OPCODE_DEBUG,
             sizeof(struct dkvr_error_log),
             1,
-            tracker_logger_get_list()[i]);
+            &(tracker_logger_get_list()[i]));
     }
     tracker_logger_flush();
 }
@@ -220,16 +224,10 @@ static void apply_new_configuration()
 {
     if (tracker_calibration_is_noise_variance_updated())
     {
-        const float* noise_var = tracker_calibration_get_noise_variance();
-        memcpy(eskf_config.noise_gyro,  noise_var,     sizeof(eskf_config.noise_gyro));
-        memcpy(eskf_config.noise_accel, noise_var + 3, sizeof(eskf_config.noise_accel));
-        memcpy(eskf_config.noise_mag,   noise_var + 6, sizeof(eskf_config.noise_mag));
+        tracker_calibration_get_noise_variance(eskf_config.noise_gyro,
+                                               eskf_config.noise_accel,
+                                               eskf_config.noise_mag);
         eskf_configure(&eskf_config);
-    }
-
-    if (tracker_calibration_is_mag_reference_updated())
-    {
-        eskf_set_magnetic_reference(tracker_calibration_get_magnetic_reference());
     }
 }
 

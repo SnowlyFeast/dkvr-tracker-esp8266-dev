@@ -16,6 +16,7 @@ typedef enum
 
 dkvr_led_mode dkvr_led_get_mode();
 
+void dkvr_led_init();
 void dkvr_led_on();
 void dkvr_led_off();
 void dkvr_led_set_mode(dkvr_led_mode mode);

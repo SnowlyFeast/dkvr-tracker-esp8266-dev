@@ -6,13 +6,6 @@
 extern "C" {
 #endif
 
-// device address
-typedef enum
-{
-    MPU6050_DEVICE_ADDRESS_A0_LOW   = 0x68,
-    MPU6050_DEVICE_ADDRESS_A0_HIGH  = 0x69
-} mpu6050_address;
-
 // clock source configuration
 typedef enum
 {
@@ -67,7 +60,7 @@ typedef enum
     MPU6050_SELF_TEST_PASSED        = 0x00,
     MPU6050_SELF_TEST_GYRO_FAILED   = 0x01,
     MPU6050_SELF_TEST_ACCEL_FAILED  = 0x02,
-    MPU6050_SELF_TEST_I2C_ERROR     = 0x03
+    MPU6050_SELF_TEST_I2C_ERROR     = 0x04
 } mpu6050_self_test_result;
 
 // interrupt code
@@ -76,7 +69,7 @@ typedef uint8_t mpu6050_interrupt;
 // configuration struct
 struct mpu6050_configuration
 {
-    uint8_t address;
+    uint8_t ad0;
     uint8_t smplrt;         // Actual Sampling Rate             (required to calculate smplrt_div)
 
     uint8_t clksel;         // Clock Source                     (Register 107 - Power Managment 1)
@@ -112,8 +105,10 @@ struct mpu6050_handle
 /* -------------------------------------------------------------------------- */
 /*                           configuration functions                          */
 /* -------------------------------------------------------------------------- */
+// i2c address setup
+void mpu6050_set_ad0(struct mpu6050_handle* hptr, int high);
+
 // main configuration
-void mpu6050_set_address(struct mpu6050_configuration* config, mpu6050_address address);
 void mpu6050_set_clksel(struct mpu6050_configuration* config, mpu6050_clksel clksel);
 void mpu6050_set_sampling_rate(struct mpu6050_configuration* config, uint8_t sampling_rate);
 void mpu6050_set_dlpf(struct mpu6050_configuration* config, mpu6050_dlpf dlpf);

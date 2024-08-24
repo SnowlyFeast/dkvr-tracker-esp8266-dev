@@ -49,15 +49,18 @@ static void euler_rodrigues(const float* quat, const float* vec, float* dst);
 static void hamilton_product2(const float* lhs, const float w, const float* v, float* dst);
 
 // FIXME: remove after debug
-#include "common/system_interface.h"
-static void serial_print_vector(float* v, int n)
+#include "common/dkvr_core.h"
+static void serial_print_vector(const float* v, int n)
 {
-    static int count = 0;
-    if (count++ < 3) return; else count = 0;
+    // static int count = 0;
+    // if (count++ < 3) return; else count = 0;
 
     for (int i = 0; i < n; i++)
+    {
         dkvr_serial_print_float(v[i]);
-    dkvr_serial_print("\r\n");
+        dkvr_serial_print_str(" ");
+    }
+    ENDL();
 }
 
 void eskf_configure(const struct eskf_configuration *config)
@@ -77,15 +80,6 @@ void eskf_configure(const struct eskf_configuration *config)
         observation_error[0][i] = noise_accel[i] + uncertainty_linear_accel + time_step * time_step * noise_gyro[i];
         observation_error[1][i] = noise_mag[i] + uncertainty_magnetic_dist + time_step * time_step * noise_gyro[i];
     }
-}
-
-void eskf_set_magnetic_reference(const float* new_mag_ref)
-{
-    memcpy(magnetic_ref, new_mag_ref, sizeof(magnetic_ref));
-    
-    // remove y component (remove magnetic declination)
-    magnetic_ref[0] = sqrtf(magnetic_ref[0] * magnetic_ref[0] + magnetic_ref[1] * magnetic_ref[1]);
-    magnetic_ref[1] = 0;
 }
 
 void eskf_init(const float* acc_read, const float* mag_read)
@@ -154,6 +148,10 @@ void eskf_init(const float* acc_read, const float* mag_read)
     }
     
     eskf_ready = 1;
+
+    serial_print_vector(acc_read, 3);
+    serial_print_vector(mag_read, 3);
+    serial_print_vector(eskf_nominal.orientation, 4);
 }
 
 void eskf_update(const float* gyr_read, const float* acc_read, const float* mag_read)

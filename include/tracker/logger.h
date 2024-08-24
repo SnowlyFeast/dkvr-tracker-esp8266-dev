@@ -15,7 +15,7 @@ struct dkvr_error_log
     char msg[DKVR_LOGGER_MSG_LEN];
 };
 
-const struct dkvr_error_log** tracker_logger_get_list();
+const struct dkvr_error_log* tracker_logger_get_list();
 int tracker_logger_get_count();
 void tracker_logger_flush();
 void tracker_logger_push(dkvr_err err, PGM_P msg);

@@ -91,13 +91,17 @@ static dkvr_err mpu6050_init()
         break;
     }
 
+    // run self-test
+    mpu6050_self_test_result st = mpu6050_run_self_test(&mpu6050);
+    if (st != MPU6050_SELF_TEST_PASSED)
+        return DKVR_ERR_GYR_SELF_TEST_FAIL;
+
     // soft reset
     if (mpu6050_reset(&mpu6050))
         return DKVR_ERR_GYR_INIT_FAIL;
 
     // configure
     struct mpu6050_configuration config = {0};
-    mpu6050_set_address(&config, MPU6050_DEVICE_ADDRESS_A0_LOW);
     mpu6050_set_clksel(&config, MPU6050_CLK_GYRO_Z_BIT);
     mpu6050_set_sampling_rate(&config, DKVR_IMU_SAMPLING_RATE);
     mpu6050_set_dlpf(&config, MPU6050_DLPF_42_HZ_BIT);

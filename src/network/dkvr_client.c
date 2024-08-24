@@ -86,7 +86,7 @@ dkvr_err dkvr_client_dispatch_received()
 
 dkvr_err dkvr_client_send_instruction(uint8_t opcode, uint8_t len, uint8_t align, const void* payload)
 {
-    instruction->header = DKVR_NET_HEADER_VALUE;
+    instruction->header = DKVR_NET_OPENER_VALUE;
     instruction->length = len;
     instruction->align = align;
     instruction->opcode = opcode;
@@ -96,7 +96,7 @@ dkvr_err dkvr_client_send_instruction(uint8_t opcode, uint8_t len, uint8_t align
         memcpy(instruction->payload, payload, len);
 
     do_bit_conversion_if_required();
-    dkvr_udp_send_dgram(DKVR_HOST_IP, DKVR_HOST_PORT, instruction, DKVR_NET_DGRAM_MIN_LEN + instruction->length);
+    dkvr_udp_send_dgram(DKVR_HOST_IP, DKVR_HOST_PORT, instruction, DKVR_NET_HEADER_LEN + instruction->length);
 
     return DKVR_OK;
 }
@@ -186,6 +186,9 @@ static dkvr_err on_client_handshaked()
             netstat.last_heartbeat_sent = now;
             netstat.last_heartbeat_recv = now;
             dkvr_client_send_instruction(DKVR_OPCODE_HEARTBEAT, 0, 0, NULL); // ACK of handshake2
+
+            // send clinet name
+            dkvr_client_send_instruction(DKVR_OPCODE_CLIENT_NAME, sizeof(DKVR_CLIENT_NAME), 1, DKVR_CLIENT_NAME);
         }
     }
 
@@ -223,9 +226,9 @@ static int peek_client_recv()
 {
     // validate format
     int len = dkvr_udp_peek_recv();
-    if (len < DKVR_NET_DGRAM_MIN_LEN)
+    if (len < DKVR_NET_HEADER_LEN)
         return 0;
-    if (instruction->header != DKVR_NET_HEADER_VALUE)
+    if (instruction->header != DKVR_NET_OPENER_VALUE)
         return 0;
     if (instruction->sequence <= netstat.recv_seq)
         return 0;

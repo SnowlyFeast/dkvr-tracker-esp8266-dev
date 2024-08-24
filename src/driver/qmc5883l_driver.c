@@ -133,18 +133,26 @@ uint8_t qmc5883l_read_mag(struct qmc5883l_handle* hptr, float* mag_out)
     uint8_t err = qmc5883l_read(hptr, QMC5883L_REG_DATA_BEGIN, 6, buffer);
     if (err) return err;
 
+    int16_t x = ((int16_t)buffer[1] << 8) | buffer[0];
+    int16_t y = ((int16_t)buffer[3] << 8) | buffer[2];
+    int16_t z = ((int16_t)buffer[5] << 8) | buffer[4];
+
     float resolution = mag_lsb_resolution(hptr->config.control1);
-    mag_out[0] = (float)(((int16_t)buffer[1] << 8) | buffer[0]) * resolution;
-    mag_out[1] = (float)(((int16_t)buffer[3] << 8) | buffer[2]) * resolution;
-    mag_out[2] = (float)(((int16_t)buffer[5] << 8) | buffer[4]) * resolution;
+    mag_out[0] = x * resolution;
+    mag_out[1] = y * resolution;
+    mag_out[2] = z * resolution;
 
     return 0;
 }
 
 void qmc5883l_convert_mag_from_external(struct qmc5883l_handle* hptr, uint8_t* ext_read, float* mag_out)
 {
+    int16_t x = ((int16_t)ext_read[1] << 8) | ext_read[0];
+    int16_t y = ((int16_t)ext_read[3] << 8) | ext_read[2];
+    int16_t z = ((int16_t)ext_read[5] << 8) | ext_read[4];
+
     float resolution = mag_lsb_resolution(hptr->config.control1);
-    mag_out[0] = (float)(((int16_t)ext_read[1] << 8) | ext_read[0]) * resolution;
-    mag_out[1] = (float)(((int16_t)ext_read[3] << 8) | ext_read[2]) * resolution;
-    mag_out[2] = (float)(((int16_t)ext_read[5] << 8) | ext_read[4]) * resolution;
+    mag_out[0] = x * resolution;
+    mag_out[1] = y * resolution;
+    mag_out[2] = z * resolution;
 }

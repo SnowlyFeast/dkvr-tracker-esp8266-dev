@@ -16,6 +16,8 @@
 #define MASK_MODE_HS                        0b10000000
 #define MASK_MODE_MD                        0b00000011
 
+#define HMC5883L_OVERFLOW                   -4096
+
 
 typedef struct hmc5883l_handle handle;
 typedef struct hmc5883l_configuration config;
@@ -135,49 +137,30 @@ uint8_t hmc5883l_take_single_measurement(struct hmc5883l_handle* hptr)
 
 uint8_t hmc5883l_read_mag(struct hmc5883l_handle* hptr, float* mag_out)
 {
-    uint16_t buffer[3];
+    uint8_t buffer[6];
     uint8_t err = hmc5883l_read(hptr, HMC5883L_REG_DATA_BEGIN, 6, (uint8_t*)buffer);
     if (err) return err;
 
-    // endian conversion
-#if defined(__BYTE_ORDER__)&&(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
-    uint8_t* ptr = (uint8_t*)buffer;
-    buffer[0] = ((int16_t)ptr[0] << 8) | ptr[1];
-    buffer[1] = ((int16_t)ptr[4] << 8) | ptr[5];    // FUCKING retarded memory layout
-    buffer[2] = ((int16_t)ptr[2] << 8) | ptr[3];
-#else
-    uint16_t temp = buffer[1];
-    buffer[1] = buffer[2];
-    buffer[2] = temp;
-#endif
-
-    // overflow check
-    for (int i = 0; i < 3; i++)
-        if (buffer[i] == -4096)
-            buffer[i] = 0;
+    int16_t x = ((int16_t)buffer[0] << 8) | buffer[1];
+    int16_t y = ((int16_t)buffer[4] << 8) | buffer[5];
+    int16_t z = ((int16_t)buffer[2] << 8) | buffer[3];
 
     float resolution = mag_lsb_resolution(hptr->config.config_b);
-    for (int i = 0; i <3; i++)
-        mag_out[i] = buffer[i] * resolution;
+    mag_out[0] = (x == HMC5883L_OVERFLOW) ? 0 : (x * resolution);
+    mag_out[1] = (y == HMC5883L_OVERFLOW) ? 0 : (y * resolution);
+    mag_out[2] = (z == HMC5883L_OVERFLOW) ? 0 : (z * resolution);
 
     return 0;
 }
 
 void hmc5883l_convert_mag_from_external(struct hmc5883l_handle* hptr, uint8_t* ext_read, float* mag_out)
 {
+    int16_t x = ((int16_t)ext_read[0] << 8) | ext_read[1];
+    int16_t y = ((int16_t)ext_read[4] << 8) | ext_read[5];
+    int16_t z = ((int16_t)ext_read[2] << 8) | ext_read[3];
+
     float resolution = mag_lsb_resolution(hptr->config.config_b);
-    if (ext_read[0] != 0xF0 && ext_read[1] != 0x00)
-        mag_out[0] = (float)(((uint16_t)ext_read[0] << 8) | ext_read[1]) * resolution;
-    else
-        mag_out[0] = 0;
-
-    if (ext_read[4] != 0xF0 && ext_read[5] != 0x00)
-        mag_out[1] = (float)(((uint16_t)ext_read[4] << 8) | ext_read[5]) * resolution;
-    else
-        mag_out[1] = 0;
-
-    if (ext_read[2] != 0xF0 && ext_read[3] != 0x00)
-        mag_out[2] = (float)(((uint16_t)ext_read[2] << 8) | ext_read[3]) * resolution;
-    else
-        mag_out[2] = 0;
+    mag_out[0] = (x == HMC5883L_OVERFLOW) ? 0 : (x * resolution);
+    mag_out[1] = (y == HMC5883L_OVERFLOW) ? 0 : (y * resolution);
+    mag_out[2] = (z == HMC5883L_OVERFLOW) ? 0 : (z * resolution);
 }

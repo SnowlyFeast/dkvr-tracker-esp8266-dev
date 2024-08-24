@@ -23,7 +23,7 @@ uint8_t dkvr_i2c_read(uint8_t addr, uint8_t reg, uint8_t length, uint8_t* buffer
     
     wire.beginTransmission(addr);
     wire.write(reg);
-    uint8_t result = wire.endTransmission(addr);
+    uint8_t result = wire.endTransmission();
 
     // wire lib defined error
     if (result)

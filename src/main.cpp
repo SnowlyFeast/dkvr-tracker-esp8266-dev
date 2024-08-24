@@ -1,40 +1,67 @@
 #include <Arduino.h>
 #include <Esp.h>
 
-#include "common/dkvr_core.h"
-
 #include "common/adc_interface.h"
 #include "common/gpio_interface.h"
 #include "common/i2c_interface.h"
+#include "common/system_interface.h"
 #include "common/udp_interface.h"
 #include "common/wifi_interface.h"
 
 #include "tracker/tracker_main.h"
 
-#define SERIAL_SPEED        115200
 
+int check_init_result(dkvr_err result, const char* msg)
+{
+    if (result != DKVR_OK)
+    {
+        dkvr_serial_print_str(msg);
+        dkvr_serial_print_str(PSTR(" : 0x"));
+        dkvr_serial_print_hex(result);
+        dkvr_serial_print_ln();
+        return 1;
+    }
+    return 0;
+}
 
-static void init_framework();
+bool init_framework()
+{
+    // not gonna happen on Arduino framework cuz always return DKVR_OK
+    if (dkvr_system_init() != DKVR_OK)
+        return 1;   // if happens, it's critical.
 
+    int failed = 0;
+    failed |= check_init_result(dkvr_adc_init(),  PSTR("ADC init failed"));
+    failed |= check_init_result(dkvr_gpio_init(), PSTR("GPIO init failed"));
+    failed |= check_init_result(dkvr_i2c_init(),  PSTR("I2C init failed"));
+    failed |= check_init_result(dkvr_wifi_init(), PSTR("WiFi init failed"));
+    failed |= check_init_result(dkvr_udp_init(),  PSTR("UDP init failed"));
+    return failed;
+}
 
 void IRAM_ATTR interrupt_callback()
 {
     tracker_main_set_gpio_interrupted();
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                 ENTRY POINT                                */
+/* -------------------------------------------------------------------------- */
 void setup()
 {
-#ifdef DKVR_DEBUG_ENABLE
-    Serial.begin(SERIAL_SPEED);
-#endif
-    pinMode(DKVR_HARDWARE_LED_GPIO_NUM, OUTPUT);
-
-    init_framework();
-    tracker_main_init();
-
+    // dkvr base framework initialization
+    if (init_framework())
+    {
+        dkvr_serial_print_str(PSTR("Framework init failed. Aborting program..."));
+        delay(5000);
+        ESP.reset();
+    }
+    
+    // tracker main system initialization
     if (tracker_main_init())
     {
-        PRINTLN("Tracker initialization failed.");
+        dkvr_serial_print_str(PSTR("Tracker initialization failed."));
+        // just keep going on but no tracker data is available as IRS is not attached
     }
     else
     {
@@ -45,53 +72,4 @@ void setup()
 void loop()
 {
     tracker_main_update();
-}
-
-
-static void init_framework()
-{
-    dkvr_err result;
-    int failed = 0;
-
-    result = dkvr_adc_init();
-    if (result != DKVR_OK)
-    {
-        PRINTLN("ADC init failed : 0x", (result));
-        failed = 1;
-    }
-
-    result = dkvr_gpio_init();
-    if (result != DKVR_OK)
-    {
-        PRINTLN("GPIO init failed : 0x", (result));
-        failed = 1;
-    }
-
-    result = dkvr_i2c_init();
-    if (result != DKVR_OK)
-    {
-        PRINTLN("I2C init failed : 0x", (result));
-        failed = 1;
-    }
-
-    result = dkvr_wifi_init();
-    if (result != DKVR_OK)
-    {
-        PRINTLN("WiFi init failed : 0x", (result));
-        failed = 1;
-    }
-
-    result = dkvr_udp_init();
-    if (result != DKVR_OK)
-    {
-        PRINTLN("UDP init failed : 0x", (result));
-        failed = 1;
-    }
-
-    if (failed)
-    {
-        PRINTLN("Framework init failed. Aborting program...");
-        delay(5000);
-        ESP.reset();
-    }
 }

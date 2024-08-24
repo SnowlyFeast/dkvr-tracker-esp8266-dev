@@ -3,6 +3,10 @@
 #include <math.h>
 #include <string.h>
 
+// device address
+#define MPU6050_DEVICE_ADDRESS_AD0_LOW   0x68
+#define MPU6050_DEVICE_ADDRESS_AD0_HIGH  0x69
+
 // Register address
 #define MPU6050_REG_PWR_MGMT_1      0x6B    // Power Management 1
 #define MPU6050_REG_SELF_TEST_X     0x0D    // Self Test Register
@@ -56,12 +60,14 @@ typedef struct mpu6050_configuration configuration;
 
 static inline uint8_t mpu6050_read(handle* hptr, uint8_t reg, uint8_t len, uint8_t* buffer)
 {
-    return hptr->i2c_read(hptr->config.address, reg, len, buffer, 0);
+    uint8_t addr = hptr->config.ad0 ? MPU6050_DEVICE_ADDRESS_AD0_HIGH : MPU6050_DEVICE_ADDRESS_AD0_LOW;
+    return hptr->i2c_read(addr, reg, len, buffer, 0);
 }
 
 static inline uint8_t mpu6050_write(handle* hptr, uint8_t reg, uint8_t len, const uint8_t* buffer)
 {
-    return hptr->i2c_write(hptr->config.address, reg, len, buffer, 0);
+    uint8_t addr = hptr->config.ad0 ? MPU6050_DEVICE_ADDRESS_AD0_HIGH : MPU6050_DEVICE_ADDRESS_AD0_LOW;
+    return hptr->i2c_write(addr, reg, len, buffer, 0);
 }
 
 static inline uint8_t update_configuration_key(handle* hptr, configuration* newconf, size_t offset, uint8_t reg)
@@ -111,7 +117,8 @@ static inline float accel_lsb_resolution(uint8_t accel_fsr)
     }
 }
 
-void mpu6050_set_address(struct mpu6050_configuration* config, mpu6050_address address) { config->address = address; }
+void mpu6050_set_ad0(struct mpu6050_handle* hptr, int high) { hptr->config.ad0 = high ? 1 : 0; }
+
 void mpu6050_set_clksel(struct mpu6050_configuration* config, mpu6050_clksel clksel) { config->clksel = clksel; }
 void mpu6050_set_sampling_rate(struct mpu6050_configuration* config, uint8_t sampling_rate) { config->smplrt = sampling_rate; }
 void mpu6050_set_dlpf(struct mpu6050_configuration* config, mpu6050_dlpf dlpf) { config->dlpf = dlpf; }
@@ -147,7 +154,6 @@ void mpu6050_enable_sig_cond_reset(struct mpu6050_configuration* config) { confi
 int mpu6050_is_fifo_oflow_interrupt(mpu6050_interrupt interrupt) { return (interrupt & 0x10);}
 int mpu6050_is_i2c_mst_interrupt(mpu6050_interrupt interrupt) { return (interrupt & 0x08); }
 int mpu6050_is_data_rdy_interrupt(mpu6050_interrupt interrupt) { return (interrupt & 0x01); }
-
 
 mpu6050_handle_test_result mpu6050_test_handle(struct mpu6050_handle* hptr)
 {
@@ -246,10 +252,10 @@ mpu6050_self_test_result mpu6050_run_self_test(struct mpu6050_handle* hptr)
     uint8_t result = MPU6050_SELF_TEST_PASSED;
     for (int i = 0; i < 3; i++) 
     {
-        if (gyro_ft[i] > 0.14)
+        if (gyro_ft[i] > 1.14)
             result |= MPU6050_SELF_TEST_GYRO_FAILED;
         
-        if (accel_ft[i] > 0.14)
+        if (accel_ft[i] > 1.14)
             result |= MPU6050_SELF_TEST_ACCEL_FAILED;
     }
 
@@ -297,6 +303,10 @@ uint8_t mpu6050_configure(struct mpu6050_handle* hptr, struct mpu6050_configurat
     err |= update_configuration_key(hptr, new_config, offsetof(configuration, int_enable), MPU6050_REG_INT_ENABLE);
     err |= update_configuration_key(hptr, new_config, offsetof(configuration, user_ctrl), MPU6050_REG_USER_CTRL);
 
+    hptr->config.ext_addr = new_config->ext_addr;
+    hptr->config.ext_reg = new_config->ext_reg;
+    hptr->config.ext_len = new_config->ext_len;
+
     return err;
 }
 
@@ -335,7 +345,7 @@ uint8_t mpu6050_enable_external(struct mpu6050_handle* hptr)
     err |= mpu6050_write(hptr, MPU6050_REG_I2C_SLV0_REG, 1, &data);
 
     // enable slv 0
-    data = MPU6050_I2C_SLV0_EN_BIT | hptr->config.ext_len;
+    data = hptr->config.ext_len | MPU6050_I2C_SLV0_EN_BIT;
     err |= mpu6050_write(hptr, MPU6050_REG_I2C_SLV0_CTRL, 1, &data);
 
     // syncronization setting
@@ -360,10 +370,14 @@ uint8_t mpu6050_read_gyro(struct mpu6050_handle* hptr, float* gyr_out)
     uint8_t err = mpu6050_read(hptr, MPU6050_REG_GYRO_XOUT_H, 6, buffer);
     if (err) return err;
 
+    int16_t x = ((int16_t)buffer[0] << 8) | buffer[1];
+    int16_t y = ((int16_t)buffer[2] << 8) | buffer[3];
+    int16_t z = ((int16_t)buffer[4] << 8) | buffer[5];
+
     float resolution = gyro_lsb_resolution(hptr->config.gyro_fsr);
-    gyr_out[0] = (float)(((int16_t)buffer[0] << 8) | buffer[1]) * resolution;
-    gyr_out[1] = (float)(((int16_t)buffer[2] << 8) | buffer[3]) * resolution;
-    gyr_out[2] = (float)(((int16_t)buffer[4] << 8) | buffer[5]) * resolution;
+    gyr_out[0] = x * resolution;
+    gyr_out[1] = y * resolution;
+    gyr_out[2] = z * resolution;
 
     return 0;
 }
@@ -374,10 +388,14 @@ uint8_t mpu6050_read_accel(struct mpu6050_handle* hptr, float* acc_out)
     uint8_t err = mpu6050_read(hptr, MPU6050_REG_ACCEL_XOUT_H, 6, buffer);
     if (err) return err;
     
+    int16_t x = ((int16_t)buffer[0] << 8) | buffer[1];
+    int16_t y = ((int16_t)buffer[2] << 8) | buffer[3];
+    int16_t z = ((int16_t)buffer[4] << 8) | buffer[5];
+
     float resolution = accel_lsb_resolution(hptr->config.accel_fsr);
-    acc_out[0] = (float)(((int16_t)buffer[0] << 8) | buffer[1]) * resolution;
-    acc_out[1] = (float)(((int16_t)buffer[2] << 8) | buffer[3]) * resolution;
-    acc_out[2] = (float)(((int16_t)buffer[4] << 8) | buffer[5]) * resolution;
+    acc_out[0] = x * resolution;
+    acc_out[1] = y * resolution;
+    acc_out[2] = z * resolution;
     
     return 0;
 }

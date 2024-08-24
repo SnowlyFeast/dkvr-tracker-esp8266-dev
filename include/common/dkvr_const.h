@@ -7,6 +7,7 @@ extern "C" {
 #endif
 
 /* ---------------------------- hardware specific --------------------------- */
+#define DKVR_ADC_RESOLUTION             DKVR_ESP8266_ADC_RESOLUTION
 #define DKVR_ESP8266_ADC_RESOLUTION     1024
 
 /* ------------------------------- error code ------------------------------- */
@@ -33,6 +34,9 @@ typedef uint8_t dkvr_err;
 #define DKVR_ERR_SENSOR_READ_FAIL       0x28
 #define DKVR_ERR_INT_READ_FAIL          0x29
 #define DKVR_ERR_UNKNOWN_INTERRUPT      0x2A
+#define DKVR_ERR_GYR_SELF_TEST_FAIL     0x2B
+#define DKVR_ERR_ACC_SELF_TEST_FAIL     0x2C
+#define DKVR_ERR_MAG_SELF_TEST_FAIL     0x2D
 
 #define DKVR_ERR_NETWORK                0x30
 #define DKVR_ERR_WIFI_NO_SUCH_SSID      0x31
@@ -68,8 +72,8 @@ typedef uint8_t dkvr_err;
 #define DKVR_NET_HEARTBEAT_INTERVAL 1000
 #define DKVR_NET_HEARTBEAT_TIMEOUT  5000
 
-#define DKVR_NET_DGRAM_MIN_LEN      8
-#define DKVR_NET_HEADER_VALUE       'D'
+#define DKVR_NET_HEADER_LEN         8
+#define DKVR_NET_OPENER_VALUE       'D'
 
 
 /* --------------------------------- opcode --------------------------------- */
@@ -85,7 +89,7 @@ typedef uint8_t dkvr_err;
 
 // miscellaneous
 #define DKVR_OPCODE_LOCATE          0x11
-#define DKVR_OPCODE_CLIENTNAME      0x12
+#define DKVR_OPCODE_CLIENT_NAME     0x12
 
 // configuration
 #define DKVR_OPCODE_BEHAVIOR        0x21
@@ -93,7 +97,6 @@ typedef uint8_t dkvr_err;
 #define DKVR_OPCODE_ACC_TRANSFORM   0x23
 #define DKVR_OPCODE_MAG_TRANSFORM   0x24
 #define DKVR_OPCODE_NOISE_VARIANCE  0x25
-#define DKVR_OPCODE_MAG_REFERENCE   0x26
 
 // data transfer
 #define DKVR_OPCODE_STATUS          0x31
@@ -106,8 +109,8 @@ typedef uint8_t dkvr_err;
 /* --------------------------------- battery -------------------------------- */
 #define DKVR_BAT_MAXIMUM_VOLTAGE    4200    // mV
 #define DKVR_BAT_CUTOFF_VOLTAGE     2800    // mV
-#define DKVR_BAT_CUTOFF_VAL         ((uint16_t) (DKVR_BAT_CUTOFF_VOLTAGE  * DKVR_ESP8266_ADC_RESOLUTION / 5000 + 1))
-#define DKVR_BAT_MAXIMUM_VAL        ((uint16_t) (DKVR_BAT_MAXIMUM_VOLTAGE * DKVR_ESP8266_ADC_RESOLUTION / 5000    ))
+#define DKVR_BAT_CUTOFF_VAL         ((uint16_t) (DKVR_BAT_CUTOFF_VOLTAGE  * DKVR_ADC_RESOLUTION / 5000 + 1))
+#define DKVR_BAT_MAXIMUM_VAL        ((uint16_t) (DKVR_BAT_MAXIMUM_VOLTAGE * DKVR_ADC_RESOLUTION / 5000    ))
 #define DKVR_BAT_EFFECTIVE_RANGE    (DKVR_BAT_MAXIMUM_VAL - DKVR_BAT_CUTOFF_VAL)
 
 #define DKVR_BAT_READ_INTERVAL      10000

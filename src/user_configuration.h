@@ -15,7 +15,6 @@
 /* -------------------------------------------------------------------------- */
 #define DKVR_IMU_INTERFACE_IMPLEMENTER  ii_mpu6050_hmc5883l
 
-
 /* -------------------------------------------------------------------------- */
 /*                         IMU Placement Configuration                        */
 /* -------------------------------------------------------------------------- */
@@ -31,10 +30,25 @@
 /* -------------------------------------------------------------------------- */
 /*                        Pin Connection Configuration                        */
 /* -------------------------------------------------------------------------- */
-// #define DKVR_HARDWARE_LED_CATHODE_TO_GND
+#define DKVR_HARDWARE_LED_ACTIVE_LOW
 // #define DKVR_HARDWARE_OVERRIDE_LED_GPIO     2
 // #define DKVR_HARDWARE_OVERRIDE_INT_GPIO     14
 
+
+/* -------------------------------------------------------------------------- */
+/*                           IMU Factory Calibration                          */
+/* -------------------------------------------------------------------------- */
+// calibration matrix are column-major
+/*
+#define DKVR_IMU_FACTORY_CALIBRATION_GYRO       \
+    1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f
+#define DKVR_IMU_FACTORY_CALIBRATION_ACCEL      \
+    1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f
+#define DKVR_IMU_FACTORY_CALIBRATION_MAG        \
+    1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f
+#define DKVR_IMU_FACTORY_CALIBRATION_NOISE_VAR  \
+    0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f
+*/
 
 /* -------------------------------------------------------------------------- */
 /*                                DEBUG OPTIONS                               */
@@ -44,6 +58,4 @@
 // #define DKVR_DEBUG_I2C
 // #define DKVR_DEBUG_NET_SEND
 // #define DKVR_DEBUG_NET_RECV
-
-
 #define DKVR_DEBUG_USE_LOGGER
