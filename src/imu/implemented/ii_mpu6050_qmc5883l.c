@@ -22,6 +22,8 @@
 #define EXTERNAL_REG        QMC5883L_REG_DATA_BEGIN
 #define EXTERNAL_DATA_LEN   QMC5883L_DATA_LENGTH
 
+#define DEG_TO_RAD          (0.01745329252f)
+
 static struct mpu6050_handle mpu6050;
 static struct qmc5883l_handle qmc5883l;
 
@@ -150,6 +152,9 @@ static dkvr_err mpu6050_read_gyro_and_accel(float* gyr_out, float* acc_out)
 
     if (mpu6050_read_accel(&mpu6050, acc_out))
         return DKVR_ERR_SENSOR_READ_FAIL;
+
+    for (int i = 0; i < 3; i++)
+        gyr_out[i] *= DEG_TO_RAD;
 
     return DKVR_OK;
 }

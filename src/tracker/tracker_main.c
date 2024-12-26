@@ -44,7 +44,7 @@ int tracker_main_init()
     dkvr_led_off();
     dkvr_led_on();
     tracker_behavior_reset();
-    tracker_calibration_reset();
+    tracker_calib_reset();
 
     // init DKVR client
     dkvr_err net_err = dkvr_client_init(tracker_instruction_handler);
@@ -62,11 +62,13 @@ int tracker_main_init()
     {
         // configure filter
         eskf_config.time_step = DKVR_IMU_SAMPLING_PERIOD;
-        tracker_calibration_get_noise_variance(eskf_config.noise_gyro,
-                                               eskf_config.noise_accel,
-                                               eskf_config.noise_mag);
+        tracker_calib_get_noise_variance(eskf_config.noise_gyro,
+                                         eskf_config.noise_accel,
+                                         eskf_config.noise_mag);
         eskf_config.uncertainty_linear_accel = DKVR_ESKF_UNCERTAIN_ACC;
         eskf_config.uncertainty_magnetic_dist = DKVR_ESKF_UNCERTAIN_MAG;
+        eskf_config.uncertainty_orientaiton_low = DKVR_ESKF_UNCERTAIN_ORI_LOW;
+        eskf_config.uncertainty_orientation_med = DKVR_ESKF_UNCERTAIN_ORI_MED;
         eskf_config.lpf_cutoff_linear_accel = DKVR_ESKF_LPF_CUTOFF_ACC;
         eskf_config.lpf_cutoff_magnetic_dist = DKVR_ESKF_LPF_CUTOFF_MAG;
         eskf_configure(&eskf_config);
@@ -82,16 +84,22 @@ int tracker_main_init()
             if (!dkvr_imu_is_data_ready()) continue;                // IMU data is not ready
             if (dkvr_imu_read() != DKVR_OK) continue;               // imu reading failed
 
-            tracker_calibration_transform(dkvr_imu_raw.gyr, dkvr_imu_raw.acc, dkvr_imu_raw.mag);
+            tracker_calib_transform_readings(dkvr_imu_raw.gyr, dkvr_imu_raw.acc, dkvr_imu_raw.mag);
             eskf_init(dkvr_imu_raw.acc, dkvr_imu_raw.mag);
             break;
         }
+
+        #ifdef DKVR_IMU_MAG_BOOT_TIME_SCALING
+        // set scale factor
+        float scale = 1.0f / sqrtf(SQUARE(dkvr_imu_raw.mag[0]) + SQUARE(dkvr_imu_raw.mag[1]) + SQUARE(dkvr_imu_raw.mag[2]));
+        tracker_calib_set_scale_factor(scale);
+        #endif
     }
     else
     {
         // overwrite the init result as imu error is more important
         tracker_status_set_init_result(imu_err);
-        tracker_logger_push(imu_err, PSTR("IMU initialization code : 0x"));
+        tracker_logger_push(imu_err, PSTR("IMU initialization failed"));
         PRINTLN("IMU init failed with code 0x", (imu_err));
     }
 
@@ -124,15 +132,16 @@ void tracker_main_update()
     if (dkvr_client_is_connected())
     {
         dkvr_client_dispatch_received();
+        apply_new_configuration(); // apply new config if received
         send_data();
         report_error();
     }
     
     // update etc
-    apply_new_configuration();
     tracker_status_update();
     update_led();
-    tracker_statistic_record_execution_time();  // always at the last
+
+    tracker_statistic_record_cycle_end();  // always at the last
 }
 
 static void read_imu()
@@ -158,47 +167,57 @@ static void read_imu()
         imu_read_successful = 1;
 
         // calibrate
-        tracker_calibration_transform(dkvr_imu_raw.gyr,
+        tracker_calib_transform_readings(dkvr_imu_raw.gyr,
                                       dkvr_imu_raw.acc,
                                       dkvr_imu_raw.mag);
 
         // estimate orienation
         eskf_update(dkvr_imu_raw.gyr, dkvr_imu_raw.acc, dkvr_imu_raw.mag);
+
+        // handle post-error
+        if (isnanf(eskf_nominal.orientation[0]) || isnanf(eskf_nominal.orientation[1]) ||
+            isnanf(eskf_nominal.orientation[2]) || isnanf(eskf_nominal.orientation[3]) )
+        {
+            eskf_init(dkvr_imu_raw.acc, dkvr_imu_raw.mag);
+        }
     }
 }
 
 static void send_data()
 {
-    // send raw
-    if (tracker_behavior_get_raw() && imu_read_successful)
-    {
-        dkvr_client_send_instruction(
-            DKVR_OPCODE_RAW,
-            sizeof(dkvr_imu_raw),
-            4,
-            &dkvr_imu_raw);
-    }
-
-    // send orientation
+    // send data
     if (tracker_behavior_get_active())
     {
-        static uint32_t last_orientation_sent = 0;
+        static uint32_t last_data_sent = 0;
         uint32_t now = dkvr_get_time();
-        if (now > last_orientation_sent + DKVR_IMU_SEND_INTERVAL)
+        if (now > last_data_sent + DKVR_IMU_SEND_INTERVAL)
         {
-            if (imu_read_successful)
+            
+            // send raw
+            if (tracker_behavior_get_raw() && imu_read_successful)
             {
                 dkvr_client_send_instruction(
-                    DKVR_OPCODE_ORIENTATION,
-                    sizeof(eskf_nominal.orientation),
-                    4,
-                    eskf_nominal.orientation);
+                    DKVR_OPCODE_RAW,
+                    sizeof(dkvr_imu_raw),
+                    sizeof(float),
+                    &dkvr_imu_raw);
             }
-            else
+
+            // send nominal
+            if (tracker_behavior_get_nominal())
+            {
+                dkvr_client_send_instruction(
+                    DKVR_OPCODE_NOMINAL,
+                    sizeof(eskf_nominal),
+                    sizeof(float),
+                    &eskf_nominal);
+            }
+            
+            
             {
                 // TODO: interpolation
             }
-            last_orientation_sent = now;
+            last_data_sent = now;
         }
     }
 
@@ -222,9 +241,9 @@ static void report_error()
 
 static void apply_new_configuration()
 {
-    if (tracker_calibration_is_noise_variance_updated())
+    if (tracker_calib_is_noise_variance_updated())
     {
-        tracker_calibration_get_noise_variance(eskf_config.noise_gyro,
+        tracker_calib_get_noise_variance(eskf_config.noise_gyro,
                                                eskf_config.noise_accel,
                                                eskf_config.noise_mag);
         eskf_configure(&eskf_config);

@@ -106,6 +106,8 @@
         "stop_token": "c",
         "streambuf": "c",
         "thread": "c",
-        "typeinfo": "c"
+        "typeinfo": "c",
+        "statistic.h": "c",
+        "calibration.h": "c"
     }
 }

@@ -61,6 +61,28 @@
 #   error DKVR_HARDWARE_MAG_Y_HEADING not specified
 #endif
 
+
+#ifndef DKVR_DEBUG
+
+#   ifdef DKVR_DEBUG_I2C
+#       undef DKVR_DEBUG_I2C
+#   endif
+
+#   ifdef DKVR_DEBUG_NET_SEND
+#       undef DKVR_DEBUG_NET_SEND
+#   endif
+
+#   ifdef DKVR_DEBUG_NET_RECV
+#       undef DKVR_DEBUG_NET_RECV
+#   endif
+
+#   ifdef DKVR_DEBUG_USE_LOGGER
+#       undef DKVR_DEBUG_USE_LOGGER
+#   endif
+
+#endif
+
+
 /* ---------------------------------- const --------------------------------- */
 #ifdef DKVR_HARDWARE_OVERRIDE_LED_GPIO
 #   undef DKVR_HARDWARE_LED_GPIO_NUM
@@ -422,7 +444,11 @@
 #ifndef PROGMEM
 #   define PROGMEM
 #   define PSTR
-#   define PGM_P        const char*
-#   define memcpy_P     memcpy
-#   define strlen_P     strlen
+#   define PGM_P                const char*
+#   define memcpy_P             memcpy
+#   define strlen_P             strlen
+#   define pgm_read_byte(addr)  (*(addr))
 #endif
+
+/* ---------------------------- some random macro --------------------------- */
+#define SQUARE(x)   (x * x)

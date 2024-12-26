@@ -11,6 +11,7 @@ static float gyr_transform[12];
 static float acc_transform[12];
 static float mag_transform[12];
 static float noise_var[9];
+static float scale_factor = 1.0f;
 
 // factory calibration
 static const float gyr_reset[12] PROGMEM  = { DKVR_IMU_FACTORY_CALIBRATION_GYRO };
@@ -36,28 +37,34 @@ static inline void reset_noise_variance()
 }
 static void apply_transform(float* src, float* matrix);
 
-void tracker_calibration_transform(float* gyr, float* acc, float* mag)
+void tracker_calib_transform_readings(float* gyr, float* acc, float* mag)
 {
     apply_transform(gyr, gyr_transform);
     apply_transform(acc, acc_transform);
     apply_transform(mag, mag_transform);
+
+#ifdef DKVR_IMU_MAG_BOOT_TIME_SCALING
+    mag[0] *= scale_factor;
+    mag[1] *= scale_factor;
+    mag[2] *= scale_factor;
+#endif
 }
 
-int tracker_calibration_is_noise_variance_updated()
+int tracker_calib_is_noise_variance_updated()
 {
     int temp = noise_var_updated;
     noise_var_updated = 0;
     return temp;
 }
 
-void tracker_calibration_get_noise_variance(float* gyr, float* acc, float* mag)
+void tracker_calib_get_noise_variance(float* gyr, float* acc, float* mag)
 {
     memcpy(gyr, noise_var + 0, sizeof(float) * 3);
     memcpy(acc, noise_var + 3, sizeof(float) * 3);
     memcpy(mag, noise_var + 6, sizeof(float) * 3);
 }
 
-void tracker_calibration_reset()
+void tracker_calib_reset()
 {
     reset_gyr_transform();
     reset_acc_transform();
@@ -65,36 +72,38 @@ void tracker_calibration_reset()
     reset_noise_variance();
 }
 
-void tracker_calibration_set_gyr_transform(const float* new_gyr) 
+void tracker_calib_set_scale_factor(float scale) { scale_factor = scale; }
+
+void tracker_calib_set_gyr_transform(const float* new_gyr) 
 { 
     if (is_zero_array(new_gyr))
-        memcpy(gyr_transform, new_gyr, sizeof(gyr_transform));
-    else
         reset_gyr_transform();
+    else
+        memcpy(gyr_transform, new_gyr, sizeof(gyr_transform));
 }
 
-void tracker_calibration_set_acc_transform(const float* new_acc) 
+void tracker_calib_set_acc_transform(const float* new_acc) 
 { 
     if (is_zero_array(new_acc))
-        memcpy(acc_transform, new_acc, sizeof(acc_transform));
-    else
         reset_acc_transform();
+    else
+        memcpy(acc_transform, new_acc, sizeof(acc_transform));
 }
 
-void tracker_calibration_set_mag_transform(const float* new_mag) 
+void tracker_calib_set_mag_transform(const float* new_mag) 
 { 
     if (is_zero_array(new_mag))
-        memcpy(mag_transform, new_mag, sizeof(mag_transform));
-    else
         reset_mag_transform();
+    else
+        memcpy(mag_transform, new_mag, sizeof(mag_transform));
 }
 
-void tracker_calibration_set_noise_variance(const float *new_noise_var) 
+void tracker_calib_set_noise_variance(const float *new_noise_var) 
 {
     if (is_zero_array(new_noise_var))
-        memcpy(noise_var, new_noise_var, sizeof(noise_var));
-    else
         reset_noise_variance();
+    else
+        memcpy(noise_var, new_noise_var, sizeof(noise_var));
 
     noise_var_updated = 1;
 }

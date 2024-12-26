@@ -43,7 +43,7 @@ void tracker_logger_push(dkvr_err err, PGM_P msg)
 
 #else
 
-const struct dkvr_error_log** tracker_logger_get_list() { return NULL; }
+const struct dkvr_error_log* tracker_logger_get_list() { return NULL; }
 int tracker_logger_get_count() { return 0; }
 void tracker_logger_flush() {}
 

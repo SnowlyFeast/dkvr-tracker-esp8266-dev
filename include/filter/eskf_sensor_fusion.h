@@ -24,8 +24,10 @@ struct eskf_configuration
     float noise_gyro[3];                // gyroscope noise variance : (rad/s)^2
     float noise_accel[3];               // accelerometer noise variance : (m/s^2)^2
     float noise_mag[3];                 // magnetometer noise variance : (nG)^2
-    float uncertainty_linear_accel;     // uncertainty of linear acceleration model : (m/s^2)^s
-    float uncertainty_magnetic_dist;    // uncertainty of magnetic disturbance model : (nG)^2
+    float uncertainty_linear_accel;     // uncertainty of linear acceleration model : (m/s^2)^s/s
+    float uncertainty_magnetic_dist;    // uncertainty of magnetic disturbance model : (nG)^2/s
+    float uncertainty_orientaiton_low;  // uncertainty of orientation for stady state : (rad/s)^s/s
+    float uncertainty_orientation_med;  // uncertainty of orientation for unstable state : (rad/s)^s/s
     float lpf_cutoff_linear_accel;      // cutoff freq of linear acceleration lpf : Hz
     float lpf_cutoff_magnetic_dist;     // cutoff freq of magnetic disturbance lpf : Hz
 };

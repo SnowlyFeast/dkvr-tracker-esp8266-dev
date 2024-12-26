@@ -178,7 +178,7 @@ static dkvr_err on_client_handshaked()
     }
 
     // check handshake2 response
-    while (peek_client_recv())
+    if (peek_client_recv())
     {
         if (instruction->opcode == DKVR_OPCODE_HANDSHAKE2)
         {

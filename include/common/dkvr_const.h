@@ -56,10 +56,14 @@ typedef uint8_t dkvr_err;
 #define DKVR_IMU_SAMPLING_RATE      100                             // Hz
 #define DKVR_IMU_SAMPLING_PERIOD    (1.0f / DKVR_IMU_SAMPLING_RATE) // s
 
-#define DKVR_ESKF_UNCERTAIN_ACC     0.04f
-#define DKVR_ESKF_UNCERTAIN_MAG     0.08f
-#define DKVR_ESKF_LPF_CUTOFF_ACC    40  // Hz
-#define DKVR_ESKF_LPF_CUTOFF_MAG    10  // Hz
+
+/* -------------------------- filter configuration -------------------------- */
+#define DKVR_ESKF_UNCERTAIN_ACC     0.01f           // (m/s^2)^2/s
+#define DKVR_ESKF_UNCERTAIN_MAG     0.01f           // (nG)^2/s
+#define DKVR_ESKF_UNCERTAIN_ORI_LOW 1.745329e-4f    // (rad)^2/s
+#define DKVR_ESKF_UNCERTAIN_ORI_MED 3.490659e-3f    // (rad)^2/s
+#define DKVR_ESKF_LPF_CUTOFF_ACC    50              // Hz
+#define DKVR_ESKF_LPF_CUTOFF_MAG    5               // Hz
 
 
 /* -------------------------- network configuration ------------------------- */
@@ -101,7 +105,7 @@ typedef uint8_t dkvr_err;
 // data transfer
 #define DKVR_OPCODE_STATUS          0x31
 #define DKVR_OPCODE_RAW             0x32
-#define DKVR_OPCODE_ORIENTATION     0x33
+#define DKVR_OPCODE_NOMINAL         0x33
 #define DKVR_OPCODE_STATISTIC       0x34
 #define DKVR_OPCODE_DEBUG           0x3F
 

@@ -19,9 +19,9 @@ extern int dkvr_imu_data_ready;
 
 // implement required
 LINKAGE dkvr_err internal_dkvr_imu_init();
-LINKAGE dkvr_err internal_dkvr_imu_read(float* gyr_out, float* acc_out, float* mag_out);
+LINKAGE dkvr_err internal_dkvr_imu_read(float* gyr_out, float* acc_out, float* mag_out); // gyro is required to be in rad
 LINKAGE dkvr_err internal_dkvr_imu_handle_interrupt();
-LINKAGE const struct dkvr_hardware_specification* internal_dkvr_imu_get_spec();
+LINKAGE const struct dkvr_hardware_specification* internal_dkvr_imu_get_spec(); // TODO: change this ugly method
 
 #ifdef __cplusplus
 }

@@ -26,7 +26,7 @@ int check_init_result(dkvr_err result, const char* msg)
 
 bool init_framework()
 {
-    // not gonna happen on Arduino framework cuz always return DKVR_OK
+    // not gonna happen on Arduino framework cuz it always returns DKVR_OK
     if (dkvr_system_init() != DKVR_OK)
         return 1;   // if happens, it's critical.
 

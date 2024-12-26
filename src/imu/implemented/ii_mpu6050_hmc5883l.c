@@ -22,6 +22,8 @@
 #define EXTERNAL_REG        HMC5883L_REG_DATA_BEGIN
 #define EXTERNAL_DATA_LEN   HMC5883L_DATA_LENGTH
 
+#define DEG_TO_RAD          (0.01745329252f)
+
 static struct mpu6050_handle mpu6050;
 static struct hmc5883l_handle hmc5883l;
 
@@ -151,6 +153,9 @@ static dkvr_err mpu6050_read_gyro_and_accel(float* gyr_out, float* acc_out)
     if (mpu6050_read_accel(&mpu6050, acc_out))
         return DKVR_ERR_SENSOR_READ_FAIL;
 
+    for (int i = 0; i < 3; i++)
+        gyr_out[i] *= DEG_TO_RAD;
+
     return DKVR_OK;
 }
 
@@ -198,7 +203,7 @@ static dkvr_err hmc5883l_init()
     hmc5883l_set_data_output_rate(&config, HMC5883L_DO_75HZ);
     hmc5883l_set_measurement_configuration(&config, HMC5883L_MS_NORMAL);
     hmc5883l_set_gain(&config, HMC5883L_GN_230);
-    hmc5883l_set_high_speed_i2c(&config, 1);
+    // hmc5883l_set_high_speed_i2c(&config, 1);
     hmc5883l_set_operating_mode(&config, HMC5883L_MD_SINGLE);
 
     if (hmc5883l_configure(&hmc5883l, config))
