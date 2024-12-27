@@ -53,7 +53,7 @@ typedef uint8_t dkvr_err;
 #define DKVR_HARDWARE_LED_GPIO_NUM  2
 #define DKVR_HARDWARE_INT_GPIO_NUM  14
 
-#define DKVR_IMU_SAMPLING_RATE      100                             // Hz
+#define DKVR_IMU_SAMPLING_RATE      75                              // Hz
 #define DKVR_IMU_SAMPLING_PERIOD    (1.0f / DKVR_IMU_SAMPLING_RATE) // s
 
 
@@ -79,6 +79,7 @@ typedef uint8_t dkvr_err;
 #define DKVR_NET_HEADER_LEN         8
 #define DKVR_NET_OPENER_VALUE       'D'
 
+#define DKVR_NET_IMU_SEND_INTERVAL  (1000 / DKVR_IMU_SAMPLING_RATE)  // ms
 
 /* --------------------------------- opcode --------------------------------- */
 #define DKVR_OPCODE_CLASS_MASK      0xF0
