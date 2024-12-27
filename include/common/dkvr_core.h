@@ -98,8 +98,6 @@
 #       define DKVR_HARDWARE_INT_GPIO_NUM       DKVR_HARDWARE_OVERRIDE_INT_GPIO
 #endif
 
-#define DKVR_IMU_SEND_INTERVAL  (1000 / DKVR_IMU_SAMPLING_RATE)
-
 /* -------------------------- imu orientation fixer ------------------------- */
 
 #define X               0b1000
