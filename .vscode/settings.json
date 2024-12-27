@@ -108,6 +108,7 @@
         "thread": "c",
         "typeinfo": "c",
         "statistic.h": "c",
-        "calibration.h": "c"
+        "calibration.h": "c",
+        "tracker_main.h": "c"
     }
 }

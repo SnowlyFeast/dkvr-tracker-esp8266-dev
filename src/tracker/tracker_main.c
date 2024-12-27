@@ -2,6 +2,7 @@
 
 #include "common/dkvr_const.h"
 #include "common/dkvr_core.h"
+#include "common/system_interface.h"
 
 #include "filter/eskf_sensor_fusion.h"
 #include "imu/imu_control.h"

@@ -9,7 +9,7 @@
 #define SERIAL_SPEED    115200
 
 
-uint32_t dkvr_approximate_time = 0;
+uint32_t dkvr_approximate_time = 0; // TODO: hmm...
 
 dkvr_err dkvr_system_init()
 {
