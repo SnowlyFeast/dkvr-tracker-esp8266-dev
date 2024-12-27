@@ -167,9 +167,9 @@ static dkvr_err mpu6050_read_external_mag(float* mag_out)
 
     hmc5883l_convert_mag_from_external(&hmc5883l, buffer, mag_out);
 
-    ASSERT_RESULT(mpu6050_enable_bypass(&mpu6050));
-    ASSERT_RESULT(hmc5883l_take_single_measurement(&hmc5883l));
-    ASSERT_RESULT(mpu6050_disable_bypass(&mpu6050));
+    // ASSERT_RESULT(mpu6050_enable_bypass(&mpu6050));
+    // ASSERT_RESULT(hmc5883l_take_single_measurement(&hmc5883l));
+    // ASSERT_RESULT(mpu6050_disable_bypass(&mpu6050));
     
     return DKVR_OK;
 }
@@ -204,7 +204,7 @@ static dkvr_err hmc5883l_init()
     hmc5883l_set_measurement_configuration(&config, HMC5883L_MS_NORMAL);
     hmc5883l_set_gain(&config, HMC5883L_GN_230);
     // hmc5883l_set_high_speed_i2c(&config, 1);
-    hmc5883l_set_operating_mode(&config, HMC5883L_MD_SINGLE);
+    hmc5883l_set_operating_mode(&config, HMC5883L_MD_CONTINUOUS);
 
     if (hmc5883l_configure(&hmc5883l, config))
         return DKVR_ERR_MAG_INIT_FAIL;
