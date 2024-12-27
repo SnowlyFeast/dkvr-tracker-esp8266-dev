@@ -17,6 +17,7 @@
 
 
 static volatile int gpio_interrupted = 0;
+static int last_interrupt = 0;
 static int interrupt_missed = 0;
 static int imu_read_successful = 0;
 
@@ -35,6 +36,7 @@ void IRAM_ATTR tracker_main_set_gpio_interrupted()
         interrupt_missed = 1;
 
     gpio_interrupted = 1;
+    last_interrupt = dkvr_get_time();
 }
 
 int tracker_main_init()
@@ -108,6 +110,18 @@ int tracker_main_init()
 
 void tracker_main_update()
 {
+    // spinlock to wait interrupt if < 1ms
+    uint32_t next_int_estimated = last_interrupt + DKVR_IMU_SAMPLING_PERIOD * 1000; // ms
+    if (dkvr_get_time() > next_int_estimated - 2)
+    {
+        // lock for +2ms of estimated interrupt timinig
+        while (!gpio_interrupted)
+        {
+            if (dkvr_get_time() > next_int_estimated + 2)
+                break;
+        }
+    }
+
     // handle GPIO interrupt
     if (gpio_interrupted)
     {
@@ -119,6 +133,8 @@ void tracker_main_update()
             tracker_statistic_record_interrupt_miss();
             interrupt_missed = 0;
         }
+
+        tracker_statistic_record_cycle_end();
     }
 
     // update dkvr client connection
@@ -140,8 +156,6 @@ void tracker_main_update()
     // update etc
     tracker_status_update();
     update_led();
-
-    tracker_statistic_record_cycle_end();  // always at the last
 }
 
 static void read_imu()
@@ -158,6 +172,7 @@ static void read_imu()
     {
         // read IMU
         dkvr_err err = dkvr_imu_read();
+        
         if (err)
         {
             tracker_logger_push(err, PSTR("IMU reading failed."));
@@ -168,9 +183,8 @@ static void read_imu()
 
         // calibrate
         tracker_calib_transform_readings(dkvr_imu_raw.gyr,
-                                      dkvr_imu_raw.acc,
-                                      dkvr_imu_raw.mag);
-
+                                         dkvr_imu_raw.acc,
+                                         dkvr_imu_raw.mag);
         // estimate orienation
         eskf_update(dkvr_imu_raw.gyr, dkvr_imu_raw.acc, dkvr_imu_raw.mag);
 
@@ -190,9 +204,8 @@ static void send_data()
     {
         static uint32_t last_data_sent = 0;
         uint32_t now = dkvr_get_time();
-        if (now > last_data_sent + DKVR_IMU_SEND_INTERVAL)
+        if (now > last_data_sent + DKVR_NET_IMU_SEND_INTERVAL)
         {
-            
             // send raw
             if (tracker_behavior_get_raw() && imu_read_successful)
             {
@@ -244,8 +257,8 @@ static void apply_new_configuration()
     if (tracker_calib_is_noise_variance_updated())
     {
         tracker_calib_get_noise_variance(eskf_config.noise_gyro,
-                                               eskf_config.noise_accel,
-                                               eskf_config.noise_mag);
+                                         eskf_config.noise_accel,
+                                         eskf_config.noise_mag);
         eskf_configure(&eskf_config);
     }
 }
@@ -281,7 +294,7 @@ static void update_led()
     if (tracker_status_get_battery_level() <= DKVR_BAT_LOW_THRESHOLD)
     {
         static uint32_t bat_warning_begin = 0;
-        uint32_t now = dkvr_get_time();
+        uint32_t now = dkvr_approximate_time;
         if (now > (bat_warning_begin + DKVR_BAT_LOW_LED_INTERVAL))
         {
             bat_warning_begin = now;
