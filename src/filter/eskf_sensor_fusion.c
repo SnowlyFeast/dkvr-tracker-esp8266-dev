@@ -161,45 +161,43 @@ void eskf_update(const float* gyr_read, const float* acc_read, const float* mag_
 static void update_priori_state()
 {
     // update priori error state
-    float angle[3]; // axis-angle
-    for (int i = 0; i < 3; i++)
-        angle[i] = raw_gyr[i] * time_step * 0.5f;
-    
-    hamilton_product2(eskf_nominal.orientation, 1, angle, eskf_nominal.orientation);
+    float magnitude = sqrtf(raw_gyr[0] * raw_gyr[0] + raw_gyr[1] * raw_gyr[1] + raw_gyr[2] * raw_gyr[2]);
+    float cos = cosf(magnitude * time_step * 0.5f);
+    float sin = sinf(magnitude * time_step * 0.5f) / magnitude;
+    float delta_quat[4] = {cos, raw_gyr[0] * sin, raw_gyr[1] * sin, raw_gyr[2] * sin};
+
+    hamilton_product2(eskf_nominal.orientation, delta_quat[0], delta_quat + 1, eskf_nominal.orientation);
     matrix_mul_scalar(3, 1, eskf_nominal.linear_accel, lpfc_linear_accel);
     matrix_mul_scalar(3, 1, eskf_nominal.magnetic_dist, lpfc_magnetic_dist);
 
     // update priori error covariance
-    float rot_mat[3][3] = {
-        {         1,  angle[2], -angle[1] },
-        { -angle[2],         1,  angle[0] },
-        {  angle[1], -angle[0],         1 }
-    };
+    quat_to_rotation_matrix(delta_quat);
+
     float temp[9][3];
-    memcpy(temp, error_covar, sizeof(float) * 3 * 9);                   // extract top 3 row
-    matrix_mul(3, 3, 9, FLAT(rot_mat), FLAT(temp), FLAT(error_covar));  // multiplied to (rotation matrix)^T
+    memcpy(temp, error_covar, sizeof(float) * 3 * 9);                           // extract top 3 row
+    matrix_mul(3, 3, 9, FLAT(rotation_matrix), FLAT(temp), FLAT(error_covar));  // multiplied to (rotation matrix)^T
 
     float result[9][3];
     for (int i = 0; i < 9; i++)
-        memcpy(temp[i], error_covar[i], sizeof(float) * 3);             // extract left 3 column
-    matrix_mul_trans(9, 3, 3, FLAT(temp), FLAT(rot_mat), FLAT(result)); // multiplied by (rotation matrix)
+        memcpy(temp[i], error_covar[i], sizeof(float) * 3);                     // extract left 3 column
+    matrix_mul_trans(9, 3, 3, FLAT(temp), FLAT(rotation_matrix), FLAT(result)); // multiplied by (rotation matrix)
     for (int i = 0; i < 9; i++)
-        memcpy(error_covar[i], result[i], sizeof(float) * 3);           // write back
+        memcpy(error_covar[i], result[i], sizeof(float) * 3);                   // write back
 
-    for (int i = 0; i < 3; i++) {                                       // multiply damping factor
+    for (int i = 0; i < 3; i++) {                                               // multiply damping factor
         for (int j = 0; j < 9; j++)
         {
-            error_covar[i + 3][j] *= lpfc_linear_accel;
-            error_covar[j][i + 3] *= lpfc_linear_accel;
-            error_covar[i + 6][j] *= lpfc_magnetic_dist;
-            error_covar[j][i + 6] *= lpfc_magnetic_dist;
+            error_covar[i + 3][j    ] *= lpfc_linear_accel;
+            error_covar[j    ][i + 3] *= lpfc_linear_accel;
+            error_covar[i + 6][j    ] *= lpfc_magnetic_dist;
+            error_covar[j    ][i + 6] *= lpfc_magnetic_dist;
         }
     }
 
     // add noise & uncertainty variance
     for (int i = 0; i < 3; i++)
     {
-        error_covar[i][i] += time_step * time_step * noise_gyro[i];
+        error_covar[i][i]         += time_step * time_step * noise_gyro[i];
         error_covar[i + 3][i + 3] += time_step * uncertainty_linear_accel;
         error_covar[i + 6][i + 6] += time_step * uncertainty_magnetic_dist;
     }
@@ -252,46 +250,29 @@ static void compute_kalman_gain()
     euler_rodrigues(inv_quat, estimated_magnetic, estimated_magnetic);
 
     // update observation matrix
-    observation_matrix[0][1] = -estimated_accel[2] * 0.5f; // orientation error from accel
-    observation_matrix[0][2] =  estimated_accel[1] * 0.5f;
-    observation_matrix[1][0] =  estimated_accel[2] * 0.5f;
-    observation_matrix[1][2] = -estimated_accel[0] * 0.5f;
-    observation_matrix[2][0] = -estimated_accel[1] * 0.5f;
-    observation_matrix[2][1] =  estimated_accel[0] * 0.5f;
+    float temp_vec[3];
+    float temp_mat[3][3];
 
-    observation_matrix[3][1] = -estimated_magnetic[2] * 0.5f;  // orientation error from mag
-    observation_matrix[3][2] =  estimated_magnetic[1] * 0.5f;
-    observation_matrix[4][0] =  estimated_magnetic[2] * 0.5f;
-    observation_matrix[4][2] = -estimated_magnetic[0] * 0.5f;
-    observation_matrix[5][0] = -estimated_magnetic[1] * 0.5f;
-    observation_matrix[5][1] =  estimated_magnetic[0] * 0.5f;
+    memcpy(temp_vec, estimated_accel, sizeof(float) * 3);
+    matrix_mul_scalar(3, 1, temp_vec, 0.5f);
+    matrix_skew_symmetrize(temp_vec, FLAT(temp_mat));
+    for (int i = 0; i < 3; i++)
+        memcpy(observation_matrix[i], temp_mat[i], sizeof(float) * 3);
+    
+    memcpy(temp_vec, estimated_magnetic, sizeof(float) * 3);
+    matrix_mul_scalar(3, 1, temp_vec, 0.5f);
+    matrix_skew_symmetrize(temp_vec, FLAT(temp_mat));
+    for (int i = 0; i < 3; i++)
+        memcpy(observation_matrix[i + 3], temp_mat[i], sizeof(float) * 3);
 
     quat_to_rotation_matrix(inv_quat);
-    if (!ignore_linear_accel)
-    {
-        matrix_mul_scalar(3, 3, FLAT(rotation_matrix), -1.0f);
-        for (int i = 0; i < 3; i++)
-            memcpy(observation_matrix[i] + 3, rotation_matrix[i], sizeof(float) * 3);
-    }
-    else
-    {
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 3; j++)
-                observation_matrix[i][j + 3] = 0;
-    }
 
-    if (!ignore_magnetic_dist)
-    {
-        matrix_mul_scalar(3, 3, FLAT(rotation_matrix), -1.0f);
-        for (int i = 0; i < 3; i++)
-            memcpy(observation_matrix[i + 3] + 6, rotation_matrix[i], sizeof(float) * 3);
-    }
-    else
-    {
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 3; j++)
-                observation_matrix[i + 3][j + 6] = 0;
-    }
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+        {
+            observation_matrix[i    ][j + 3] = ignore_linear_accel  ? 0 : -rotation_matrix[i][j];
+            observation_matrix[i + 3][j + 6] = ignore_magnetic_dist ? 0 :  rotation_matrix[i][j];
+        }
 
     // compute kalman gain
     float pht[9][6];
@@ -313,7 +294,7 @@ static void update_posteriori_error_covar()
     float temp[9][9], result[9][9];
     matrix_mul(9, 6, 9, FLAT(kalman_gain), FLAT(observation_matrix), FLAT(temp));
     for (int i = 0; i < 9; i++)
-        result[i][i] -= 1.0f;
+        temp[i][i] -= 1.0f;
 
     matrix_mul(9, 9, 9, FLAT(temp), FLAT(error_covar), FLAT(result));
     matrix_mul_trans(9, 9, 9, FLAT(result), FLAT(temp), FLAT(error_covar));    
